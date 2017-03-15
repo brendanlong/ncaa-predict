@@ -145,6 +145,8 @@ def get_players(years):
                 }
                 for colname, cell in zip(colnames, row.iterchildren()):
                     content = cell.text_content().strip()
+                    # TODO: Get player ID from href
+                    # TODO: Clean up height
                     if content != "-":
                         player[colname] = content
                     else:
