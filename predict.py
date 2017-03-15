@@ -43,5 +43,7 @@ if __name__ == "__main__":
         features)
     estimator = tf.contrib.learn.LinearClassifier(
         feature_columns=feature_columns)
-    estimator.fit(x=features, y=labels, steps=1000, batch_size=100)
-    print(estimator.evaluate(x=features, y=labels))
+    train = df["year"] != 2016
+    estimator.fit(
+        x=features[train], y=labels[train], steps=10000, batch_size=100)
+    print(estimator.evaluate(x=features[~train], y=labels[~train]))
