@@ -1,25 +1,56 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 
-def read_data_csv(path):
-    dtypes = {
+def load_csv(path, columns, header=None):
+    this_dir = os.path.dirname(__file__)
+    path = os.path.join(this_dir, "data", path)
+    df = pd.read_csv(
+        path, usecols=list(columns), names=header,
+        header=None if header is not None else 'infer')
+    df = df[~df.isnull().any(axis=1)]
+    return df.apply(pd.to_numeric)
+
+
+def load_ncaa_games(year):
+    columns = {
         "year": np.int,
         "team_id": np.int,
         "opponent_id": np.int,
         "team_score": np.int,
         "opponent_score": np.int
     }
-    this_dir = os.path.dirname(__file__)
-    path = os.path.join(this_dir, "data", path)
-    df = pd.read_csv(path, usecols=list(dtypes))
-    df = df[~df.isnull().any(axis=1)]
-    return df.apply(pd.to_numeric)
+    path = "ncaa/csv/ncaa_games_%s.csv" % year
+    return load_csv(path, columns)
+
+
+def load_ncaa_players(year):
+    columns = {
+        "team_id": np.int,
+        "player_id": np.int,
+        "points_avg": np.int
+    }
+    header = [
+        "team_name", "team_id", "year", "name", "player_id", "class", "season",
+        "pos", "height", "g", "fg_made", "fg_atts", "fg_pct", "3pt_made",
+        "3pt_atts", "3pt_pct", "ft_made", "ft_atts", "ft_pct", "rebound_num",
+        "rebound_avg", "assist_num", "assist_avg", "blocks_num", "blocks_avg",
+        "steals_num", "steals_avg", "points_num", "points_avg", "turnovers",
+        "dd", "td"]
+    path = "ncaa/csv/ncaa_games_%s.csv" % year
+    return load_csv(path, columns, header)
+
+
+def load_data(year):
+    games = load_ncaa_games(year)
+    players = load_ncaa_players(year)
+    return pd.merge(games, players, how="inner", on="team_id")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+lxml
 numpy
 pandas
+requests
 tensorflow
