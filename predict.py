@@ -24,7 +24,10 @@ def read_data_csv(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", "-v", action="store_const", const=True)
     args = parser.parse_args()
+    if args.verbose:
+        tf.logging.set_verbosity(tf.logging.INFO)
 
     dfs = [read_data_csv("ncaa/csv/ncaa_games_%s.csv" % year)
            for year in range(2002, 2017)]
