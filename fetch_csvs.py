@@ -106,7 +106,7 @@ def get_school_games(year, school):
                 content = cell.text_content().strip()
                 if colname == "opponent_name":
                     content = content.replace("%", "").strip()
-                    link = cell.xpath("a[@class='schoolColorsLink']")
+                    link = cell.xpath("a")
                     if link:
                         href = link[0].get("href")
                         _, end = href.split("(")
@@ -175,7 +175,7 @@ def get_school_players(year, school):
                 content = cell.text_content().strip()
                 if colname == "player_name":
                     content = content.replace("%", "").strip()
-                    link = cell.xpath("a[@class='schoolColorsLink']")
+                    link = cell.xpath("a")
                     if link:
                         href = link[0].get("href")
                         _, end = href.split("(")
