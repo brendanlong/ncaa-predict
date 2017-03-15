@@ -2,26 +2,28 @@
 import argparse
 import csv
 import os
+import re
 
 import lxml.html
 import requests
 
 
-FORM_URL = "http://web1.ncaa.org/stats/StatsSrv/careerteam"
+RECORDS_URL = "http://web1.ncaa.org/stats/exec/records"
+TEAM_URL = "http://web1.ncaa.org/stats/StatsSrv/careerteam"
 SCHOOL_CSV = "csv/ncaa_schools.csv"
 
 
-def post_form(post_data=None):
+def post_form(url, post_data=None):
     headers = {
         "user-agent":
             "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like "
             "Gecko) Chrome/41.0.2228.0 Safari/537.36",
-        "referrer": FORM_URL,
+        "referrer": url,
     }
     if post_data is not None:
-        res = requests.post(FORM_URL, data=post_data, headers=headers)
+        res = requests.post(url, data=post_data, headers=headers)
     else:
-        res = requests.get(FORM_URL, headers=headers)
+        res = requests.get(url, headers=headers)
     res.raise_for_status()
     return lxml.html.document_fromstring(res.text)
 
@@ -42,7 +44,61 @@ def write_csv(csv_out, data):
 
 
 def load_schools():
+    if not os.path.exists(SCHOOL_CSV):
+        get_schools()
     return read_csv(SCHOOL_CSV)
+
+
+def get_games(years):
+    schools = load_schools()
+
+    for year in years:
+        games = []
+        for school in schools:
+            print("%s/%s" % (year, school["school_name"]))
+            page = post_form(RECORDS_URL, {
+                "academicYear": str(year),
+                "orgId": school["school_id"],
+                "sportCode": "MBB"
+            })
+
+            rows = page.xpath(
+                "//form[@name='orgRecords']/table[2]/tr[position()>1]")
+            colnames = [
+                "opponent_name", "game_date", "score", "opponent_score",
+                "location", "neutral_site_location", "game_length",
+                "attendence"]
+            int_cols = [
+                "opponent_id", "score", "opponent_score", "attendence",
+                "school_id",
+            ]
+            for row in rows:
+                game = {
+                    "school_id": school["school_id"]
+                }
+                for colname, cell in zip(colnames, row.iterchildren()):
+                    content = cell.text_content().strip()
+                    if colname == "opponent_name":
+                        content = content.replace("%", "").strip()
+                        link = cell.xpath("a[@class='schoolColorsLink']")
+                        if link:
+                            href = link[0].get("href")
+                            _, end = href.split("(")
+                            game["opponent_id"], _ = end.split(")")
+                        else:
+                            game["opponent_id"] = None
+
+                    if content == "-":
+                        content = None
+                    elif colname == "attendence":
+                        # remove commas
+                        content = content.replace(",", "")
+                    game[colname] = content
+                for colname in int_cols:
+                    if game[colname] is not None:
+                        game[colname] = int(game[colname])
+                games.append(game)
+        write_csv("csv/ncaa_games_%s.csv" % year, games)
 
 
 def get_players(years):
@@ -52,7 +108,7 @@ def get_players(years):
         players = []
         for school in schools:
             print("%s/%s" % (year, school["school_name"]))
-            page = post_form({
+            page = post_form(TEAM_URL, {
                 "academicYear": str(year),
                 "orgId": school["school_id"],
                 "sportCode": "MBB",
@@ -91,7 +147,7 @@ def get_players(years):
 
 
 def get_schools():
-    page = post_form()
+    page = post_form(TEAM_URL)
     options = page.xpath("//select[@name='searchOrg']/option[position()>1]")
     schools = [
         {"school_id": option.get("value"), "school_name": option.text}
@@ -104,6 +160,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="command_name")
     subparsers.required = True
     commands = [
+        ("get_games", get_games),
         ("get_players", get_players),
         ("get_schools", get_schools),
     ]
