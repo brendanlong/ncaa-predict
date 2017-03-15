@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import csv
+import functools
+import itertools
+import multiprocessing
 import os
-import random
-import time
 
 import lxml.html
 import requests
@@ -39,25 +40,18 @@ PLAYER_COLS = SCRAPE_PLAYER_COLS + [
 
 
 def post_form(url, post_data=None):
-    # loop to retry
-    for i in range(10):
-        try:
-            headers = {
-                "user-agent":
-                    "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, "
-                    "like Gecko) Chrome/41.0.2228.0 Safari/537.36",
-                "referrer": url,
-            }
-            if post_data is not None:
-                res = requests.post(url, data=post_data, headers=headers)
-            else:
-                res = requests.get(url, headers=headers)
-            res.raise_for_status()
-            return lxml.html.document_fromstring(res.text)
-        except requests.exceptions.HTTPError:
-            if i == 9:
-                raise
-            time.sleep(random.randint(1, 10))
+    headers = {
+        "user-agent":
+            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, "
+            "like Gecko) Chrome/41.0.2228.0 Safari/537.36",
+        "referrer": url,
+    }
+    if post_data is not None:
+        res = requests.post(url, data=post_data, headers=headers)
+    else:
+        res = requests.get(url, headers=headers)
+    res.raise_for_status()
+    return lxml.html.document_fromstring(res.text)
 
 
 def read_csv(csv_in):
@@ -81,18 +75,24 @@ def load_schools():
     return read_csv(SCHOOL_CSV)
 
 
-def get_school_games(school, year):
+def get_school_games(year, school):
+    print("%s/%s" % (year, school["school_name"]))
     path = "csv/games/ncaa_games_%s_%s.csv" % (year, school["school_id"])
     if not os.path.exists(path):
         int_cols = [
             "opponent_id", "score", "opponent_score", "attendence",
             "school_id",
         ]
-        page = post_form(RECORDS_URL, {
-            "academicYear": str(year),
-            "orgId": school["school_id"],
-            "sportCode": "MBB"
-        })
+        try:
+            page = post_form(RECORDS_URL, {
+                "academicYear": str(year),
+                "orgId": school["school_id"],
+                "sportCode": "MBB"
+            })
+        except requests.exceptions.HTTPError:
+            # We can try again later
+            print("Failed to load %s/%s" % (year, school["school_name"]))
+            return []
 
         rows = page.xpath(
             "//form[@name='orgRecords']/table[2]/tr[position()>1]")
@@ -128,34 +128,39 @@ def get_school_games(school, year):
     return read_csv(path)
 
 
-def get_games(years):
+def get_games(years, num_threads):
     schools = load_schools()
+    with multiprocessing.Pool(num_threads) as pool:
+        for year in years:
+            f = functools.partial(get_school_games, year)
+            games = pool.map(f, schools)
+            games = list(itertools.chain.from_iterable(games))
+            write_csv("csv/ncaa_games_%s.csv" % year, games, GAME_COLS)
 
-    for year in years:
-        games = []
-        for school in schools:
-            print("%s/%s" % (year, school["school_name"]))
-            games.extend(get_school_games(school, year))
-        write_csv("csv/ncaa_games_%s.csv" % year, games, GAME_COLS)
 
-
-def get_school_players(school, year):
+def get_school_players(year, school):
+    print("%s/%s" % (year, school["school_name"]))
     path = "csv/players/ncaa_players_%s_%s.csv" % (year, school["school_id"])
     if not os.path.exists(path):
         int_cols = [
             "player_id", "height", "g"
         ]
-        page = post_form(TEAM_URL, {
-            "academicYear": str(year),
-            "orgId": school["school_id"],
-            "sportCode": "MBB",
-            "sortOn": "0",
-            "doWhat": "display",
-            "playerId": "-100",
-            "coachId": "-100",
-            "division": "1",
-            "idx": ""
-        })
+        try:
+            page = post_form(TEAM_URL, {
+                "academicYear": str(year),
+                "orgId": school["school_id"],
+                "sportCode": "MBB",
+                "sortOn": "0",
+                "doWhat": "display",
+                "playerId": "-100",
+                "coachId": "-100",
+                "division": "1",
+                "idx": ""
+            })
+        except requests.exceptions.HTTPError:
+            # We can try again later
+            print("Failed to load %s/%s" % (year, school["school_name"]))
+            return []
 
         rows = page.xpath(
             "//table[@class='statstable'][2]//tr[position()>3]")
@@ -193,15 +198,14 @@ def get_school_players(school, year):
     return read_csv(path)
 
 
-def get_players(years):
+def get_players(years, num_threads):
     schools = load_schools()
-
-    for year in years:
-        players = []
-        for school in schools:
-            print("%s/%s" % (year, school["school_name"]))
-            players.extend(get_school_players(school, year))
-        write_csv("csv/ncaa_players_%s.csv" % year, players, PLAYER_COLS)
+    with multiprocessing.Pool(num_threads) as pool:
+        for year in years:
+            f = functools.partial(get_school_players, year)
+            players = pool.map(f, schools)
+            players = list(itertools.chain.from_iterable(players))
+            write_csv("csv/ncaa_players_%s.csv" % year, players, PLAYER_COLS)
 
 
 def get_schools():
@@ -226,6 +230,7 @@ if __name__ == "__main__":
         subparser = subparsers.add_parser(name)
         subparser.set_defaults(func=func)
         if func != get_schools:
+            subparser.add_argument("--num-threads", "-j", default=1, type=int)
             subparser.add_argument(
                 "--years", "-y", type=lambda v: map(int, v.split(",")),
                 default=list(range(2002, 2017)),
@@ -234,4 +239,4 @@ if __name__ == "__main__":
     if args.func == get_schools:
         args.func()
     else:
-        args.func(args.years)
+        args.func(args.years, args.num_threads)
