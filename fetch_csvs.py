@@ -179,7 +179,11 @@ def get_school_players(year, school):
                     if link:
                         href = link[0].get("href")
                         _, end = href.split("(")
-                        player["player_id"], _ = end.split(")")
+                        id, _ = end.split(")")
+                        if id == "-":
+                            player["player_id"] = None
+                        else:
+                            player["player_id"] = id
                     else:
                         player["player_id"] = None
 
