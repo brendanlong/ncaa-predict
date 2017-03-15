@@ -2,7 +2,8 @@
 import argparse
 import csv
 import os
-import re
+import random
+import time
 
 import lxml.html
 import requests
@@ -14,18 +15,25 @@ SCHOOL_CSV = "csv/ncaa_schools.csv"
 
 
 def post_form(url, post_data=None):
-    headers = {
-        "user-agent":
-            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like "
-            "Gecko) Chrome/41.0.2228.0 Safari/537.36",
-        "referrer": url,
-    }
-    if post_data is not None:
-        res = requests.post(url, data=post_data, headers=headers)
-    else:
-        res = requests.get(url, headers=headers)
-    res.raise_for_status()
-    return lxml.html.document_fromstring(res.text)
+    # loop to retry
+    for i in range(10):
+        try:
+            headers = {
+                "user-agent":
+                    "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, "
+                    "like Gecko) Chrome/41.0.2228.0 Safari/537.36",
+                "referrer": url,
+            }
+            if post_data is not None:
+                res = requests.post(url, data=post_data, headers=headers)
+            else:
+                res = requests.get(url, headers=headers)
+            res.raise_for_status()
+            return lxml.html.document_fromstring(res.text)
+        except requests.exceptions.HTTPError:
+            if i == 9:
+                raise
+            time.sleep(random.randint(1, 10))
 
 
 def read_csv(csv_in):
@@ -98,6 +106,7 @@ def get_games(years):
                     if game[colname] is not None:
                         game[colname] = int(game[colname])
                 games.append(game)
+
         write_csv("csv/ncaa_games_%s.csv" % year, games)
 
 
