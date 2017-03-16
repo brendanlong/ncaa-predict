@@ -12,6 +12,11 @@ import tensorflow as tf
 # All teams need to be the same size, so we pad them to this size
 MAX_PLAYERS = 56
 
+PLAYER_FEATURE_COLUMNS = [
+    "height", "fg_percent", "3pt_percent", "freethrows_percent",
+    "points_avg", "rebounds_avg", "assists_avg", "blocks_avg",
+    "steals_avg"]
+
 
 def load_csv(path, columns):
     this_dir = os.path.dirname(__file__)
@@ -27,7 +32,7 @@ def load_ncaa_games(year):
 
 
 def load_ncaa_players(year):
-    columns = ["school_id", "height", "points_avg"]
+    columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
     players = players[~players["height"].isnull()]
@@ -37,9 +42,9 @@ def load_ncaa_players(year):
 def load_game(players, p):
     i, game = p
     this_team = players[players["school_id"] == game["school_id"]]
-    this_team = this_team.as_matrix(columns=["height", "points_avg"])
+    this_team = this_team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
     other_team = players[players["school_id"] == game["opponent_id"]]
-    other_team = other_team.as_matrix(columns=["height", "points_avg"])
+    other_team = other_team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
 
     if len(this_team) == 0 or len(other_team) == 0:
         return None, None
@@ -102,7 +107,7 @@ if __name__ == "__main__":
     estimator = tf.contrib.learn.LinearClassifier(
         feature_columns=feature_cols)
     estimator.fit(
-        x=features, y=labels, steps=10000, batch_size=1000)
+        x=features, y=labels, steps=100000, batch_size=1000)
 
     test_features, test_labels = load_data(args.predict_year)
     print(estimator.evaluate(x=test_features, y=test_labels))
