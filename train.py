@@ -12,7 +12,6 @@ import tensorflow as tf
 # All teams need to be the same size, so we pad them to this size
 # or reduce to this size
 N_PLAYERS = 10
-N_THREADS = 16
 
 PLAYER_FEATURE_COLUMNS = [
     # g = games
@@ -70,7 +69,7 @@ def load_game(players, p):
     return np.stack(teams), [game["score"] > game["opponent_score"]]
 
 
-def load_data(year):
+def load_data(year, n_threads=16):
     features_path = "data/features_%s.npy" % year
     labels_path = "data/labels_%s.npy" % year
     if not os.path.exists(features_path) \
@@ -80,7 +79,7 @@ def load_data(year):
         len_rows = games.shape[0]
         print("Iterating through %s games" % len_rows)
         f = functools.partial(load_game, players)
-        with multiprocessing.Pool(N_THREADS) as pool:
+        with multiprocessing.Pool(n_threads) as pool:
             res = pool.map(f, games.iterrows())
         features = [feature for feature, _ in res if feature is not None]
         labels = [label for _, label in res if label is not None]
@@ -95,6 +94,9 @@ def load_data(year):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", "-b", default=1000, type=int)
+    parser.add_argument("--steps", "-s", default=10000, type=int)
+    parser.add_argument("--n-threads", "-j", default=16, type=int)
     parser.add_argument("--predict-year", "-p", default=2016, type=int)
     parser.add_argument(
         "--train-years", "-y", default=list(range(2002, 2017)),
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     if args.verbose:
         tf.logging.set_verbosity(tf.logging.INFO)
 
-    data = [load_data(year) for year in args.train_years]
+    data = [load_data(year, args.n_threads) for year in args.train_years]
     features = np.vstack([features for features, _ in data])
     labels = np.vstack([labels for _, labels in data])
     assert len(features) == len(labels)
@@ -115,7 +117,7 @@ if __name__ == "__main__":
     estimator = tf.contrib.learn.LinearClassifier(
         feature_columns=feature_cols)
     estimator.fit(
-        x=features, y=labels, steps=100000, batch_size=1000)
+        x=features, y=labels, steps=args.steps, batch_size=args.batch_size)
 
     test_features, test_labels = load_data(args.predict_year)
     print(estimator.evaluate(x=test_features, y=test_labels))
