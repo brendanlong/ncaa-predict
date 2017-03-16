@@ -64,14 +64,16 @@ if __name__ == "__main__":
             "NN Prediction: %s vs. %s final score: %s"
             % (args.team_a, args.team_b, score))
 
-    # Use each team's games against other teams to figure out how much worse
-    # an average team does when playing against them (vs. against other teams).
-    # Use that to adjust each team's historical mean score to predict how well
-    # they'll do against each other.
-    games = load_ncaa_games(args.year - 1)
-    a_score, a_diff = get_historical_score(team_a_id, games)
-    b_score, b_diff = get_historical_score(team_b_id, games)
-    print(
-        "Historical prediction: %s %.1f to %s %.1f (total: %.1f)"
-        % (args.team_a, a_score - b_diff, args.team_b, b_score - a_diff,
-           a_score + b_score - a_diff - b_diff))
+    else:
+        # Use each team's games against other teams to figure out how much
+        # worse an average team does when playing against them (vs. against
+        # other teams).
+        # Use that to adjust each team's historical mean score to predict how
+        # well they'll do against each other.
+        games = load_ncaa_games(args.year - 1)
+        a_score, a_diff = get_historical_score(team_a_id, games)
+        b_score, b_diff = get_historical_score(team_b_id, games)
+        print(
+            "Historical prediction: %s %.1f to %s %.1f (total: %.1f)"
+            % (args.team_a, a_score - b_diff, args.team_b, b_score - a_diff,
+               a_score + b_score - a_diff - b_diff))
