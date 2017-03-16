@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from constants import DNN_HIDDEN_UNITS
 from data_loader import load_ncaa_players, load_ncaa_schools, \
-    get_players_for_team
+    load_ncaa_games, get_players_for_team
 
 
 def team_name_to_id(name, all_teams):
@@ -42,3 +42,16 @@ if __name__ == "__main__":
         model_dir=args.model_in, feature_columns=feature_cols)
     score = next(estimator.predict(x=features))
     print("%s vs. %s final score: %s" % (args.team_a, args.team_b, score))
+
+    # Since we want to know the combined score, average the average score and
+    # opponent score for each team and multiply by two.
+    # We care about the opponent score becaue it gives us some information
+    # about how good the team is at preventing the other team from scoring.
+    games = load_ncaa_games(args.year - 1)
+    scores = []
+    for team_id in (team_a_id, team_b_id):
+        g = games[games["school_id"] == team_id]
+        scores.append(g["score"].mean())
+        scores.append(g["opponent_score"].mean())
+    historical = np.mean(scores) * 2
+    print("Or historical prediction: %s" % historical)
