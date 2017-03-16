@@ -17,7 +17,7 @@ BRACKET = (
                 (
                     ("Villanova", "Mt. St. Mary's"),
                     ("Wisconsin", "Virginia Tech"),
-                ), (  # TODO: Is this really UNC Willmington?
+                ), (
                     ("Virginia", "UNCW"),
                     ("Florida", "ETSU"),
                 ),
@@ -46,7 +46,7 @@ BRACKET = (
                     ("Florida St.", "FGCU"),
                 ), (
                     ("Saint Mary's (CA)", "VCU"),
-                    ("Arizona", "North Carolina"),
+                    ("Arizona", "North Dakota"),
                 ),
             ),
         ),
@@ -118,8 +118,9 @@ def predict(estimator, all_teams, all_players, bracket):
     players_a = get_players_for_team(all_players, team_ids[0])
     players_b = get_players_for_team(all_players, team_ids[1])
     x = np.array([np.stack([players_a, players_b])])
-    i = next(estimator.predict(x=x))
-    winner = teams[i]
+    # classifier tells us 1 if team_a wins, 2 if team_b wins
+    c = next(estimator.predict(x=x))
+    winner = teams[not c]
     print("%s vs %s: %s wins" % (team_a, team_b, winner))
     return winner
 
