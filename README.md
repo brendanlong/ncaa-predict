@@ -3,6 +3,8 @@ fed through a TensorFlow classifier.
 
 All of the Python scripts in this repo have help info accessible with `--help`.
 
+See also [the TODO list](TODO.md).
+
 ## Setup
 
 To setup, install Python 3 and then run:
