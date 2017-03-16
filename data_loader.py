@@ -35,12 +35,13 @@ def load_ncaa_players(year):
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
     players[players["height"].isnull()] = players["height"].mean()
+    players.fillna(0)
     return players
 
 
 def get_players_for_team(players, school_id):
     team = players[players["school_id"] == school_id]
-    team = team.sort_values("g")
+    team = team.sort_values("g", ascending=False)
     team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
     if len(team) == 0:
         return None
@@ -73,7 +74,7 @@ def load_data(year, n_threads=16):
     if not os.path.exists(features_path) \
             or not os.path.exists(labels_path):
         games = load_ncaa_games(year)
-        players = load_ncaa_players(year).fillna(0)
+        players = load_ncaa_players(year)
         len_rows = games.shape[0]
         print("Iterating through %s games" % len_rows)
         f = functools.partial(load_game, players)
