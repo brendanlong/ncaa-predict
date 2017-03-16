@@ -48,10 +48,20 @@ if __name__ == "__main__":
     # We care about the opponent score becaue it gives us some information
     # about how good the team is at preventing the other team from scoring.
     games = load_ncaa_games(args.year - 1)
-    scores = []
+    a_scores = []
+    b_scores = []
     for team_id in (team_a_id, team_b_id):
         g = games[games["school_id"] == team_id]
-        scores.append(g["score"].mean())
-        scores.append(g["opponent_score"].mean())
-    historical = np.mean(scores) * 2
-    print("Or historical prediction: %s" % historical)
+        us_score = g["score"].mean()
+        opponent_score = g["opponent_score"].mean()
+        if team_id == team_a_id:
+            a_scores.append(us_score)
+            b_scores.append(opponent_score)
+        else:
+            b_scores.append(opponent_score)
+            a_scores.append(us_score)
+    a = np.mean(a_scores)
+    b = np.mean(b_scores)
+    print(
+        "Or historical prediction: %s %.1f to %s %.1f (total: %.1f)"
+        % (args.team_a, a, args.team_b, b, a + b))
