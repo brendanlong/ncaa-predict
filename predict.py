@@ -107,12 +107,12 @@ def team_name_to_id(name, all_teams):
         raise Exception("Couldn't find ID for school [%s]" % name)
 
 
-def predict(estimator, all_teams, all_players, bracket):
+def predict(estimator, all_teams, all_players, bracket, wait=False):
     team_a, team_b = bracket
     if isinstance(team_a, tuple):
-        team_a = predict(estimator, all_teams, all_players, team_a)
+        team_a = predict(estimator, all_teams, all_players, team_a, wait)
     if isinstance(team_b, tuple):
-        team_b = predict(estimator, all_teams, all_players, team_b)
+        team_b = predict(estimator, all_teams, all_players, team_b, wait)
     teams = [team_a, team_b]
     team_ids = [team_name_to_id(name, all_teams) for name in teams]
     players_a = get_players_for_team(all_players, team_ids[0])
@@ -122,7 +122,8 @@ def predict(estimator, all_teams, all_players, bracket):
     c = next(estimator.predict(x=x))
     winner = teams[not c]
     print("%s vs %s: %s wins" % (team_a, team_b, winner))
-    input()
+    if wait:
+        input()
     return winner
 
 
@@ -130,6 +131,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-in", "-m", required=True)
     parser.add_argument("--year", "-y", default=2017, type=int)
+    parser.add_argument(
+        "--wait", "-w", default=False, action="store_const", const=True)
     args = parser.parse_args()
 
     tf.logging.set_verbosity(tf.logging.ERROR)
@@ -145,4 +148,4 @@ if __name__ == "__main__":
         hidden_units=DNN_HIDDEN_UNITS,
         model_dir=args.model_in, feature_columns=feature_cols)
 
-    predict(estimator, all_teams, players, BRACKET)
+    predict(estimator, all_teams, players, BRACKET, args.wait)
