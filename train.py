@@ -50,7 +50,19 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     if args.model_out:
-        estimator.export(export_dir=args.model_out)
+        model_out = args.model_out
+        while True:
+            try:
+                estimator.export(export_dir=model_out)
+                break
+            except RuntimeError as e:
+                if "Duplicate export dir" in str(e):
+                    print(
+                        "%s already exists. Pick a different model out folder."
+                        % model_out)
+                    model_out = input("Model out? ")
+                else:
+                    raise
 
     test_features, test_labels = load_data(
         args.predict_year, args.n_threads, args.predict_score)
