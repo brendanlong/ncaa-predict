@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("team_a")
     parser.add_argument("team_b")
-    parser.add_argument("--model-in", "-m", required=True)
+    parser.add_argument("--model-in", "-m")
     parser.add_argument("--year", "-y", default=2017, type=int)
     args = parser.parse_args()
 
@@ -50,15 +50,19 @@ if __name__ == "__main__":
     team_b_id = team_name_to_id(args.team_b, all_teams)
     players_a = get_players_for_team(players, team_a_id)
     players_b = get_players_for_team(players, team_b_id)
-    features = np.array([np.stack([players_a, players_b])])
-    feature_cols = \
-        tf.contrib.learn.infer_real_valued_columns_from_input(features)
 
-    estimator = tf.contrib.learn.DNNRegressor(
-        hidden_units=DNN_HIDDEN_UNITS,
-        model_dir=args.model_in, feature_columns=feature_cols)
-    score = next(estimator.predict(x=features))
-    print("%s vs. %s final score: %s" % (args.team_a, args.team_b, score))
+    if args.model_in:
+        features = np.array([np.stack([players_a, players_b])])
+        feature_cols = \
+            tf.contrib.learn.infer_real_valued_columns_from_input(features)
+
+        estimator = tf.contrib.learn.DNNRegressor(
+            hidden_units=DNN_HIDDEN_UNITS,
+            model_dir=args.model_in, feature_columns=feature_cols)
+        score = next(estimator.predict(x=features))
+        print(
+            "NN Prediction: %s vs. %s final score: %s"
+            % (args.team_a, args.team_b, score))
 
     # Use each team's games against other teams to figure out how much worse
     # an average team does when playing against them (vs. against other teams).
@@ -68,6 +72,6 @@ if __name__ == "__main__":
     a_score, a_diff = get_historical_score(team_a_id, games)
     b_score, b_diff = get_historical_score(team_b_id, games)
     print(
-        "Or historical prediction: %s %.1f to %s %.1f (total: %.1f)"
+        "Historical prediction: %s %.1f to %s %.1f (total: %.1f)"
         % (args.team_a, a_score - b_diff, args.team_b, b_score - a_diff,
            a_score + b_score - a_diff - b_diff))
