@@ -1,0 +1,1 @@
+DNN_HIDDEN_UNITS = [128, 64, 16]

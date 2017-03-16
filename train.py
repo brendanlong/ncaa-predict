@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
+from constants import DNN_HIDDEN_UNITS
 from data_loader import load_data
 
 
@@ -31,7 +32,8 @@ if __name__ == "__main__":
     feature_cols = \
         tf.contrib.learn.infer_real_valued_columns_from_input(features)
 
-    estimator = tf.contrib.learn.LinearClassifier(
+    estimator = tf.contrib.learn.DNNClassifier(
+        hidden_units=DNN_HIDDEN_UNITS,
         model_dir=args.model_in, feature_columns=feature_cols)
     estimator.fit(
         x=features, y=labels, steps=args.steps, batch_size=args.batch_size)

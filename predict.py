@@ -2,6 +2,7 @@
 import argparse
 import tensorflow as tf
 
+from constants import DNN_HIDDEN_UNITS
 from data_loader import load_data
 
 
@@ -17,7 +18,8 @@ if __name__ == "__main__":
     features, labels = load_data(args.predict_year)
     feature_cols = \
         tf.contrib.learn.infer_real_valued_columns_from_input(features)
-    estimator = tf.contrib.learn.LinearClassifier(
+    estimator = tf.contrib.learn.DNNClassifier(
+        hidden_units=DNN_HIDDEN_UNITS,
         model_dir=args.model_in, feature_columns=feature_cols)
 
     print(estimator.evaluate(x=features, y=labels))
