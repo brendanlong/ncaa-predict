@@ -17,11 +17,13 @@ PLAYER_FEATURE_COLUMNS = [
     "steals_avg"]
 
 
-def load_csv(path, columns):
+def load_csv(path, columns, to_numeric=True):
     this_dir = os.path.dirname(__file__)
     path = os.path.join(this_dir, path)
     df = pd.read_csv(path, usecols=list(columns))
-    return df.apply(pd.to_numeric)
+    if to_numeric:
+        df = df.apply(pd.to_numeric)
+    return df
 
 
 def load_ncaa_games(year):
@@ -37,6 +39,11 @@ def load_ncaa_players(year):
     players[players["height"].isnull()] = players["height"].mean()
     players.fillna(0)
     return players
+
+
+def load_ncaa_schools():
+    path = "csv/ncaa_schools.csv"
+    return load_csv(path, ["school_id", "school_name"], to_numeric=False)
 
 
 def get_players_for_team(players, school_id):
