@@ -63,7 +63,8 @@ def load_game(players, p):
     teams = [this_team, other_team]
     if i % 1000 == 0:
         print("Handled row %s" % i)
-    return np.stack(teams), [game["score"] > game["opponent_score"]]
+    win = game["score"] > game["opponent_score"]
+    return np.stack(teams), [win]
 
 
 def load_data(year, n_threads=16):
@@ -81,7 +82,7 @@ def load_data(year, n_threads=16):
         features = [feature for feature, _ in res if feature is not None]
         labels = [label for _, label in res if label is not None]
         features = np.array(features, dtype=np.float32)
-        labels = np.array(labels, dtype=np.float32)
+        labels = np.array(labels, dtype=np.int8)
         os.makedirs(os.path.dirname(features_path), exist_ok=True)
         os.makedirs(os.path.dirname(labels_path), exist_ok=True)
         np.save(features_path, features)

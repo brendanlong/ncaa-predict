@@ -35,8 +35,11 @@ if __name__ == "__main__":
     estimator = tf.contrib.learn.DNNClassifier(
         hidden_units=DNN_HIDDEN_UNITS,
         model_dir=args.model_in, feature_columns=feature_cols)
-    estimator.fit(
-        x=features, y=labels, steps=args.steps, batch_size=args.batch_size)
+    try:
+        estimator.fit(
+            x=features, y=labels, steps=args.steps, batch_size=args.batch_size)
+    except KeyboardInterrupt:
+        pass
     if args.model_out:
         estimator.export(export_dir=args.model_out)
 
