@@ -10,10 +10,13 @@ import tensorflow as tf
 
 
 # All teams need to be the same size, so we pad them to this size
-MAX_PLAYERS = 56
+# or reduce to this size
+N_PLAYERS = 10
+N_THREADS = 16
 
 PLAYER_FEATURE_COLUMNS = [
-    "height", "fg_percent", "3pt_percent", "freethrows_percent",
+    # g = games
+    "g", "height", "fg_percent", "3pt_percent", "freethrows_percent",
     "points_avg", "rebounds_avg", "assists_avg", "blocks_avg",
     "steals_avg"]
 
@@ -35,27 +38,32 @@ def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
-    players = players[~players["height"].isnull()]
+    players[players["height"].isnull()] = players["height"].mean()
     return players
+
+
+def get_players_for_team(players, school_id):
+    team = players[players["school_id"] == school_id]
+    team = team.sort_values("g")
+    team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
+    if len(team) == 0:
+        return None
+    elif len(team) > N_PLAYERS:
+        team = team[:N_PLAYERS]
+    elif len(team) < N_PLAYERS:
+        n = N_PLAYERS - len(team)
+        i = np.random.choice(team.shape[0], size=n)
+        team = np.vstack([team, team[i]])
+    return team
 
 
 def load_game(players, p):
     i, game = p
-    this_team = players[players["school_id"] == game["school_id"]]
-    this_team = this_team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
-    other_team = players[players["school_id"] == game["opponent_id"]]
-    other_team = other_team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
+    this_team = get_players_for_team(players, game["school_id"])
+    other_team = get_players_for_team(players, game["opponent_id"])
 
-    if len(this_team) == 0 or len(other_team) == 0:
+    if this_team is None or other_team is None:
         return None, None
-    while len(this_team) < MAX_PLAYERS:
-        random_index = np.random.choice(this_team.shape[0])
-        random_player = this_team[random_index]
-        this_team = np.vstack([this_team, [random_player]])
-    while len(other_team) < MAX_PLAYERS:
-        random_index = np.random.choice(other_team.shape[0])
-        random_player = other_team[random_index]
-        other_team = np.vstack([other_team, [random_player]])
     teams = [this_team, other_team]
     if i % 1000 == 0:
         print("Handled row %s" % i)
@@ -63,26 +71,26 @@ def load_game(players, p):
 
 
 def load_data(year):
-    with multiprocessing.Pool(16) as pool:
-        features_path = "data/features_%s.npy" % year
-        labels_path = "data/labels_%s.npy" % year
-        if not os.path.exists(features_path) \
-                or not os.path.exists(labels_path):
-            games = load_ncaa_games(year)
-            players = load_ncaa_players(year).fillna(0)
-            len_rows = games.shape[0]
-            print("Iterating through %s games" % len_rows)
-            f = functools.partial(load_game, players)
+    features_path = "data/features_%s.npy" % year
+    labels_path = "data/labels_%s.npy" % year
+    if not os.path.exists(features_path) \
+            or not os.path.exists(labels_path):
+        games = load_ncaa_games(year)
+        players = load_ncaa_players(year).fillna(0)
+        len_rows = games.shape[0]
+        print("Iterating through %s games" % len_rows)
+        f = functools.partial(load_game, players)
+        with multiprocessing.Pool(N_THREADS) as pool:
             res = pool.map(f, games.iterrows())
-            features = [feature for feature, _ in res if feature is not None]
-            labels = [label for _, label in res if label is not None]
-            features = np.array(features, dtype=np.float32)
-            labels = np.array(labels, dtype=np.float32)
-            os.makedirs(os.path.dirname(features_path), exist_ok=True)
-            os.makedirs(os.path.dirname(labels_path), exist_ok=True)
-            np.save(features_path, features)
-            np.save(labels_path, labels)
-        return np.load(features_path), np.load(labels_path)
+        features = [feature for feature, _ in res if feature is not None]
+        labels = [label for _, label in res if label is not None]
+        features = np.array(features, dtype=np.float32)
+        labels = np.array(labels, dtype=np.float32)
+        os.makedirs(os.path.dirname(features_path), exist_ok=True)
+        os.makedirs(os.path.dirname(labels_path), exist_ok=True)
+        np.save(features_path, features)
+        np.save(labels_path, labels)
+    return np.load(features_path), np.load(labels_path)
 
 
 if __name__ == "__main__":
