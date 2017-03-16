@@ -122,12 +122,13 @@ def predict(estimator, all_teams, all_players, bracket):
     c = next(estimator.predict(x=x))
     winner = teams[not c]
     print("%s vs %s: %s wins" % (team_a, team_b, winner))
+    input()
     return winner
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-in", "-m", default="model")
+    parser.add_argument("--model-in", "-m", required=True)
     parser.add_argument("--year", "-y", default=2017, type=int)
     args = parser.parse_args()
 
@@ -139,6 +140,7 @@ if __name__ == "__main__":
     features = np.array([np.stack([example_team, example_team])])
     feature_cols = \
         tf.contrib.learn.infer_real_valued_columns_from_input(features)
+
     estimator = tf.contrib.learn.DNNClassifier(
         hidden_units=DNN_HIDDEN_UNITS,
         model_dir=args.model_in, feature_columns=feature_cols)

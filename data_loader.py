@@ -61,7 +61,7 @@ def get_players_for_team(players, school_id):
     return team
 
 
-def load_game(players, p):
+def load_game(players, predict_score, p):
     i, game = p
     this_team = get_players_for_team(players, game["school_id"])
     other_team = get_players_for_team(players, game["opponent_id"])
@@ -71,20 +71,24 @@ def load_game(players, p):
     teams = [this_team, other_team]
     if i % 1000 == 0:
         print("Handled row %s" % i)
-    win = game["score"] > game["opponent_score"]
-    return np.stack(teams), [win]
+    if predict_score:
+        label = [game["score"] + game["opponent_score"]]
+    else:
+        label = [game["score"] > game["opponent_score"]]
+    return np.stack(teams), label
 
 
-def load_data(year, n_threads=16):
-    features_path = "data/features_%s.npy" % year
-    labels_path = "data/labels_%s.npy" % year
+def load_data(year, n_threads=16, predict_score=False):
+    suffix = "_score" if predict_score else ""
+    features_path = "data%s/features_%s.npy" % (suffix, year)
+    labels_path = "data%s/labels_%s.npy" % (suffix, year)
     if not os.path.exists(features_path) \
             or not os.path.exists(labels_path):
         games = load_ncaa_games(year)
         players = load_ncaa_players(year)
         len_rows = games.shape[0]
         print("Iterating through %s games" % len_rows)
-        f = functools.partial(load_game, players)
+        f = functools.partial(load_game, players, predict_score)
         with multiprocessing.Pool(n_threads) as pool:
             res = pool.map(f, games.iterrows())
         features = [feature for feature, _ in res if feature is not None]
