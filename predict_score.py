@@ -17,6 +17,23 @@ def team_name_to_id(name, all_teams):
         raise Exception("Couldn't find ID for school [%s]" % name)
 
 
+def get_historical_score(team_id, all_games):
+    games = all_games[all_games["school_id"] == team_id]
+    normal_score = games["score"].mean()
+    diffs = []
+    for school_id in all_games["school_id"].unique():
+        if school_id == team_id:
+            continue
+        g = all_games[all_games["school_id"] == school_id]
+        normal = g["score"].mean()
+        against_team = g[g["opponent_id"] == team_id]
+        against_team_score = against_team["score"].mean()
+        if np.isnan(against_team_score):
+            continue
+        diffs.append(normal - against_team_score)
+    return normal_score, np.mean(diffs)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("team_a")
@@ -43,25 +60,14 @@ if __name__ == "__main__":
     score = next(estimator.predict(x=features))
     print("%s vs. %s final score: %s" % (args.team_a, args.team_b, score))
 
-    # Since we want to know the combined score, average the average score and
-    # opponent score for each team and multiply by two.
-    # We care about the opponent score becaue it gives us some information
-    # about how good the team is at preventing the other team from scoring.
+    # Use each team's games against other teams to figure out how much worse
+    # an average team does when playing against them (vs. against other teams).
+    # Use that to adjust each team's historical mean score to predict how well
+    # they'll do against each other.
     games = load_ncaa_games(args.year - 1)
-    a_scores = []
-    b_scores = []
-    for team_id in (team_a_id, team_b_id):
-        g = games[games["school_id"] == team_id]
-        us_score = g["score"].mean()
-        opponent_score = g["opponent_score"].mean()
-        if team_id == team_a_id:
-            a_scores.append(us_score)
-            b_scores.append(opponent_score)
-        else:
-            b_scores.append(opponent_score)
-            a_scores.append(us_score)
-    a = np.mean(a_scores)
-    b = np.mean(b_scores)
+    a_score, a_diff = get_historical_score(team_a_id, games)
+    b_score, b_diff = get_historical_score(team_b_id, games)
     print(
         "Or historical prediction: %s %.1f to %s %.1f (total: %.1f)"
-        % (args.team_a, a, args.team_b, b, a + b))
+        % (args.team_a, a_score - b_diff, args.team_b, b_score - a_diff,
+           a_score + b_score - a_diff - b_diff))
