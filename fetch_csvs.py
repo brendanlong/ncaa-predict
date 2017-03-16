@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import csv
-import functools
 import itertools
 import multiprocessing
 import os
@@ -10,6 +9,7 @@ import lxml.html
 import requests
 
 
+SEARCH_URL = "http://web1.ncaa.org/stats/StatsSrv/careersearch"
 RECORDS_URL = "http://web1.ncaa.org/stats/exec/records"
 TEAM_URL = "http://web1.ncaa.org/stats/StatsSrv/careerteam"
 SCHOOL_CSV = "csv/ncaa_schools.csv"
@@ -128,14 +128,13 @@ def get_school_games(year, school):
     return read_csv(path)
 
 
-def get_games(years, num_threads):
+def get_games(years):
     schools = load_schools()
-    with multiprocessing.Pool(num_threads) as pool:
-        for year in years:
-            f = functools.partial(get_school_games, year)
-            games = pool.map(f, schools)
-            games = list(itertools.chain.from_iterable(games))
-            write_csv("csv/ncaa_games_%s.csv" % year, games, GAME_COLS)
+    for year in years:
+        games = []
+        for school in schools:
+            games.extend(get_school_games(year, school))
+        write_csv("csv/ncaa_games_%s.csv" % year, games, GAME_COLS)
 
 
 def get_school_players(year, school):
@@ -202,23 +201,22 @@ def get_school_players(year, school):
     return read_csv(path)
 
 
-def get_players(years, num_threads):
+def get_players(years):
     schools = load_schools()
-    with multiprocessing.Pool(num_threads) as pool:
-        for year in years:
-            f = functools.partial(get_school_players, year)
-            players = pool.map(f, schools)
-            players = list(itertools.chain.from_iterable(players))
-            write_csv("csv/ncaa_players_%s.csv" % year, players, PLAYER_COLS)
+    for year in years:
+        players = []
+        for school in schools:
+            players.extend(get_school_players(year, school))
+        write_csv("csv/ncaa_players_%s.csv" % year, players, PLAYER_COLS)
 
 
 def get_schools():
-    page = post_form(TEAM_URL)
+    page = post_form(SEARCH_URL)
     options = page.xpath("//select[@name='searchOrg']/option[position()>1]")
     schools = [
         {"school_id": option.get("value"), "school_name": option.text}
         for option in options]
-    write_csv(SCHOOL_CSV, schools)
+    write_csv(SCHOOL_CSV, schools, colnames=list(schools[0]))
 
 
 if __name__ == "__main__":
@@ -234,13 +232,12 @@ if __name__ == "__main__":
         subparser = subparsers.add_parser(name)
         subparser.set_defaults(func=func)
         if func != get_schools:
-            subparser.add_argument("--num-threads", "-j", default=1, type=int)
             subparser.add_argument(
                 "--years", "-y", type=lambda v: map(int, v.split(",")),
-                default=list(range(2002, 2017)),
+                default=list(range(2002, 2018)),
                 help="The years to scrape data for. (default: %(default)s")
     args = parser.parse_args()
     if args.func == get_schools:
         args.func()
     else:
-        args.func(args.years, args.num_threads)
+        args.func(args.years)
