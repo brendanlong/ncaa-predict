@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", "-b", default=1000, type=int)
     parser.add_argument("--steps", "-s", default=10000, type=int)
     parser.add_argument("--n-threads", "-j", default=16, type=int)
-    parser.add_argument("--model-out", "-o", default="model")
+    parser.add_argument("--model-out", "-o", default=None)
     parser.add_argument("--model-in", "-i", default=None)
     parser.add_argument("--predict-year", "-p", default=2016, type=int)
     parser.add_argument(
@@ -35,7 +35,8 @@ if __name__ == "__main__":
         model_dir=args.model_in, feature_columns=feature_cols)
     estimator.fit(
         x=features, y=labels, steps=args.steps, batch_size=args.batch_size)
-    estimator.export(export_dir=args.model_out)
+    if args.model_out:
+        estimator.export(export_dir=args.model_out)
 
     test_features, test_labels = load_data(args.predict_year)
     print(estimator.evaluate(x=test_features, y=test_labels))
