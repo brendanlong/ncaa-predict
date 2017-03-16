@@ -131,10 +131,12 @@ def get_school_games(year, school):
 def get_games(years):
     schools = load_schools()
     for year in years:
-        games = []
-        for school in schools:
-            games.extend(get_school_games(year, school))
-        write_csv("csv/ncaa_games_%s.csv" % year, games, GAME_COLS)
+        path = "csv/ncaa_games_%s.csv" % year
+        if not os.path.exists(path):
+            games = []
+            for school in schools:
+                games.extend(get_school_games(year, school))
+            write_csv(path, games, GAME_COLS)
 
 
 def get_school_players(year, school):
@@ -204,10 +206,12 @@ def get_school_players(year, school):
 def get_players(years):
     schools = load_schools()
     for year in years:
-        players = []
-        for school in schools:
-            players.extend(get_school_players(year, school))
-        write_csv("csv/ncaa_players_%s.csv" % year, players, PLAYER_COLS)
+        path = "csv/ncaa_players_%s.csv" % year
+        if not os.path.exists(path):
+            players = []
+            for school in schools:
+                players.extend(get_school_players(year, school))
+            write_csv(path, players, PLAYER_COLS)
 
 
 def get_schools():
