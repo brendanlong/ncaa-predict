@@ -21,12 +21,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train-years", "-y", default=list(range(2002, 2017)),
         type=lambda v: list(map(int, v.split(","))))
-    parser.add_argument("--verbose", "-v", action="store_const", const=True)
     args = parser.parse_args()
-    if args.verbose:
-        tf.logging.set_verbosity(tf.logging.INFO)
-    else:
-        tf.logging.set_verbosity(tf.logging.ERROR)
+
+    # With verbose logging, we get training feedback every 100 steps
+    tf.logging.set_verbosity(tf.logging.INFO)
 
     data = [load_data(year, args.n_threads, args.predict_score)
             for year in args.train_years]
