@@ -30,6 +30,7 @@
 
 ## Data
 
+  - Randomize the order of players and games.
   - Use all of the numerical player stats (excluding ID's).
   - Figure out how to use categorical data like class and home
     game (although this second one would need to be optional so we
