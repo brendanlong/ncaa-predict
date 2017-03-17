@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 import argparse
-import tensorflow as tf
 
-from constants import DNN_HIDDEN_UNITS
-from data_loader import load_data
+from ncaa_predict.estimator import *
+from ncaa_predict.model import ModelType
+from ncaa_predict.util import list_arg
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-in", "-m", default="model")
-    parser.add_argument("--predict-year", "-y", default=2016, type=int)
+    parser.add_argument(
+        "--hidden-units", "-u", default=DEFAULT_HIDDEN_UNITS,
+        type=list_arg(type=int),
+        help="A comma seperated list of hidden units in each DNN layer.")
+    parser.add_argument("--model-in", "-m", required=True)
+    parser.add_argument(
+        "--model-type", "-t", default=ModelType.dnn_classifier,
+        type=ModelType, choices=list(ModelType))
+    parser.add_argument(
+        "--n-threads", "-j", default=DEFAULT_N_THREADS, type=int,
+        help="Number of threads to use for some Pandas data-loading "
+        "processes. (default: %(default)s)")
     parser.add_argument("--verbose", "-v", action="store_const", const=True)
+    parser.add_argument("--year", "-y", default=2016, type=int)
     args = parser.parse_args()
     if args.verbose:
         tf.logging.set_verbosity(tf.logging.INFO)
 
-    features, labels = load_data(args.predict_year)
-    feature_cols = \
-        tf.contrib.learn.infer_real_valued_columns_from_input(features)
-    estimator = tf.contrib.learn.DNNClassifier(
-        hidden_units=DNN_HIDDEN_UNITS,
-        model_dir=args.model_in, feature_columns=feature_cols)
-
-    print(estimator.evaluate(x=features, y=labels))
+    estimator = Estimator(
+        args.model_type, hidden_units=args.hidden_units,
+        model_in=args.model_in, n_threads=args.n_threads,
+        feature_year=args.year)
+    print(estimator.evaluate(args.year))

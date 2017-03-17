@@ -16,10 +16,11 @@ PLAYER_FEATURE_COLUMNS = [
     "points_avg", "rebounds_avg", "assists_avg", "blocks_avg",
     "steals_avg"]
 
+THIS_DIR = os.path.dirname(__file__)
+
 
 def load_csv(path, columns, to_numeric=True):
-    this_dir = os.path.dirname(__file__)
-    path = os.path.join(this_dir, path)
+    path = os.path.join(THIS_DIR, "..", path)
     df = pd.read_csv(path, usecols=list(columns))
     if to_numeric:
         df = df.apply(pd.to_numeric)
@@ -80,8 +81,10 @@ def load_game(players, predict_score, p):
 
 def load_data(year, n_threads=16, predict_score=False):
     suffix = "_score" if predict_score else ""
-    features_path = "data%s/features_%s.npy" % (suffix, year)
-    labels_path = "data%s/labels_%s.npy" % (suffix, year)
+    features_path = os.path.join(
+        THIS_DIR, "../data_cache%s/features_%s.npy" % (suffix, year))
+    labels_path = os.path.join(
+        THIS_DIR, "../data_cache%s/labels_%s.npy" % (suffix, year))
     if not os.path.exists(features_path) \
             or not os.path.exists(labels_path):
         games = load_ncaa_games(year)
@@ -100,3 +103,12 @@ def load_data(year, n_threads=16, predict_score=False):
         np.save(features_path, features)
         np.save(labels_path, labels)
     return np.load(features_path), np.load(labels_path)
+
+
+def load_data_multiyear(years, n_threads):
+    data = [load_data(year, n_threads)
+            for year in years]
+    features = np.vstack([features for features, _ in data])
+    labels = np.vstack([labels for _, labels in data])
+    assert len(features) == len(labels)
+    return features, labels
