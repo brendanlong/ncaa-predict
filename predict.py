@@ -2,11 +2,11 @@
 import argparse
 
 import numpy as np
-import tensorflow as tf
 
-from constants import DNN_HIDDEN_UNITS
-from data_loader import load_ncaa_players, load_ncaa_schools, \
+from ncaa_predict.data_loader import load_ncaa_players, load_ncaa_schools, \
     get_players_for_team
+from ncaa_predict.estimator import *
+from ncaa_predict.util import list_arg, team_name_to_id
 
 
 BRACKET = (
@@ -95,18 +95,6 @@ BRACKET = (
 )
 
 
-def team_id_to_name(id, all_teams):
-    return all_teams[all_teams["school_id"] == id]["school_name"].values[0]
-
-
-def team_name_to_id(name, all_teams):
-    try:
-        return \
-            all_teams[all_teams["school_name"] == name]["school_id"].values[0]
-    except IndexError:
-        raise Exception("Couldn't find ID for school [%s]" % name)
-
-
 def predict(estimator, all_teams, all_players, bracket, wait=False):
     team_a, team_b = bracket
     if isinstance(team_a, tuple):
@@ -119,7 +107,7 @@ def predict(estimator, all_teams, all_players, bracket, wait=False):
     players_b = get_players_for_team(all_players, team_ids[1])
     x = np.array([np.stack([players_a, players_b])])
     # classifier tells us 1 if team_a wins, 2 if team_b wins
-    c = next(estimator.predict(x=x))
+    c = estimator.predict(x=x)
     winner = teams[not c]
     print("%s vs %s: %s wins" % (team_a, team_b, winner))
     if wait:
@@ -129,7 +117,18 @@ def predict(estimator, all_teams, all_players, bracket, wait=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--hidden-units", "-u", default=DEFAULT_HIDDEN_UNITS,
+        type=list_arg(type=int),
+        help="A comma seperated list of hidden units in each DNN layer.")
     parser.add_argument("--model-in", "-m", required=True)
+    parser.add_argument(
+        "--model-type", "-t", default=ModelType.dnn_classifier,
+        type=ModelType, choices=list(ModelType))
+    parser.add_argument(
+        "--n-threads", "-j", default=DEFAULT_N_THREADS, type=int,
+        help="Number of threads to use for some Pandas data-loading "
+        "processes. (default: %(default)s)")
     parser.add_argument("--year", "-y", default=2017, type=int)
     parser.add_argument(
         "--wait", "-w", default=False, action="store_const", const=True)
@@ -139,13 +138,10 @@ if __name__ == "__main__":
 
     players = load_ncaa_players(args.year)
     all_teams = load_ncaa_schools()
-    example_team = get_players_for_team(players, 697)
-    features = np.array([np.stack([example_team, example_team])])
-    feature_cols = \
-        tf.contrib.learn.infer_real_valued_columns_from_input(features)
 
-    estimator = tf.contrib.learn.DNNClassifier(
-        hidden_units=DNN_HIDDEN_UNITS,
-        model_dir=args.model_in, feature_columns=feature_cols)
+    estimator = Estimator(
+        args.model_type, hidden_units=args.hidden_units,
+        model_in=args.model_in, n_threads=args.n_threads,
+        feature_year=args.year)
 
     predict(estimator, all_teams, players, BRACKET, args.wait)

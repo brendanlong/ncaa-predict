@@ -94,8 +94,7 @@ pip-selfcheck.json
 pyvenv.cfg
 
 # Ignore pre-numpied data folders
-data
-data_score
+data_cache*
 
 # Ignore models
 [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]

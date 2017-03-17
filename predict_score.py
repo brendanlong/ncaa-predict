@@ -2,19 +2,11 @@
 import argparse
 
 import numpy as np
-import tensorflow as tf
 
-from constants import DNN_HIDDEN_UNITS
-from data_loader import load_ncaa_players, load_ncaa_schools, \
+from ncaa_predict.data_loader import load_ncaa_players, load_ncaa_schools, \
     load_ncaa_games, get_players_for_team
-
-
-def team_name_to_id(name, all_teams):
-    try:
-        return \
-            all_teams[all_teams["school_name"] == name]["school_id"].values[0]
-    except IndexError:
-        raise Exception("Couldn't find ID for school [%s]" % name)
+from ncaa_predict.estimator import *
+from ncaa_predict.util import list_arg, team_name_to_id
 
 
 def get_historical_score(team_id, all_games):
@@ -38,7 +30,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("team_a")
     parser.add_argument("team_b")
+    parser.add_argument(
+        "--hidden-units", "-u", default=DEFAULT_HIDDEN_UNITS,
+        type=list_arg(type=int),
+        help="A comma seperated list of hidden units in each DNN layer.")
     parser.add_argument("--model-in", "-m")
+    parser.add_argument(
+        "--model-type", "-t", default=ModelType.dnn_classifier,
+        type=ModelType, choices=list(ModelType))
+    parser.add_argument(
+        "--n-threads", "-j", default=DEFAULT_N_THREADS, type=int,
+        help="Number of threads to use for some Pandas data-loading "
+        "processes. (default: %(default)s)")
     parser.add_argument("--year", "-y", default=2017, type=int)
     args = parser.parse_args()
 
@@ -53,12 +56,12 @@ if __name__ == "__main__":
 
     if args.model_in:
         features = np.array([np.stack([players_a, players_b])])
-        feature_cols = \
-            tf.contrib.learn.infer_real_valued_columns_from_input(features)
 
-        estimator = tf.contrib.learn.DNNRegressor(
-            hidden_units=DNN_HIDDEN_UNITS,
-            model_dir=args.model_in, feature_columns=feature_cols)
+        estimator = Estimator(
+            args.model_type, hidden_units=args.hidden_units,
+            model_in=args.model_in, n_threads=args.n_threads,
+            feature_year=args.year)
+
         score = next(estimator.predict(x=features))
         print(
             "NN Prediction: %s vs. %s final score: %s"
