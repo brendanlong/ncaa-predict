@@ -12,7 +12,6 @@ from ncaa_predict.util import list_arg
 
 
 DEFAULT_BATCH_SIZE = 1000
-DEFAULT_N_THREADS = 16
 DEFAULT_STEPS = sys.maxsize
 
 
@@ -27,10 +26,6 @@ if __name__ == "__main__":
         help="Folder to save the model to. This folder must not exist, as "
         "tensorflow won't let us save over an old model. (default: don't "
         "save)")
-    parser.add_argument(
-        "--n-threads", "-j", default=DEFAULT_N_THREADS, type=int,
-        help="Number of threads to use for some Pandas data-loading "
-        "processes. (default: %(default)s)")
     parser.add_argument(
         "--steps", "-s", default=DEFAULT_STEPS, type=int,
         help="The maximum number of training steps. Note that you can stop "
@@ -53,8 +48,7 @@ if __name__ == "__main__":
         loss="categorical_crossentropy", optimizer="adagrad",
         metrics=["accuracy"])
 
-    features, labels = load_data_multiyear(
-        args.train_years, n_threads=args.n_threads)
+    features, labels = load_data_multiyear(args.train_years)
     try:
         model.fit(
             x=features, y=labels,

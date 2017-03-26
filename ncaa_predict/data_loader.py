@@ -38,8 +38,8 @@ def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
-    players[players["height"].isnull()] = players["height"].mean()
-    players.fillna(0)
+    players = players.fillna(0)
+    players = players.sort_values("g", ascending=False).groupby("school_id")
     return players
 
 
@@ -49,51 +49,49 @@ def load_ncaa_schools():
 
 
 def get_players_for_team(players, school_id):
-    team = players[players["school_id"] == school_id]
-    team = team.sort_values("g", ascending=False)
-    team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
-    if len(team) == 0:
+    try:
+        team = players.get_group(school_id)
+    except KeyError:
         return None
-    elif len(team) > N_PLAYERS:
+
+    team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
+    if len(team) > N_PLAYERS:
         team = team[:N_PLAYERS]
-    elif len(team) < N_PLAYERS:
-        n = N_PLAYERS - len(team)
-        i = np.random.choice(team.shape[0], size=n)
-        team = np.vstack([team, team[i]])
+
+    missing_players = N_PLAYERS - len(team)
+    if missing_players > 0:
+        missing_player = [0] * team.shape[1]
+        team = np.vstack([team] + [missing_player] * missing_players)
     return team
 
 
-def load_game(players, predict_score, p):
+def load_game(players, p):
     i, game = p
     this_team = get_players_for_team(players, game["school_id"])
     other_team = get_players_for_team(players, game["opponent_id"])
+    if i % 1000 == 0:
+        print("Handled row %s" % i)
 
     if this_team is None or other_team is None:
         return None, None
     teams = [this_team, other_team]
-    if i % 1000 == 0:
-        print("Handled row %s" % i)
-    if predict_score:
-        label = [game["score"] + game["opponent_score"]]
-    else:
-        label = [game["score"] > game["opponent_score"]]
+    label = [game["score"] > game["opponent_score"]]
     return np.stack(teams), label
 
 
-def load_data(year, n_threads=16, predict_score=False):
-    suffix = "_score" if predict_score else ""
+def load_data(year):
     features_path = os.path.join(
-        THIS_DIR, "../data_cache%s/features_%s.npy" % (suffix, year))
+        THIS_DIR, "../data_cache/features_%s.npy" % year)
     labels_path = os.path.join(
-        THIS_DIR, "../data_cache%s/labels_%s.npy" % (suffix, year))
+        THIS_DIR, "../data_cache/labels_%s.npy" % year)
     if not os.path.exists(features_path) \
             or not os.path.exists(labels_path):
         games = load_ncaa_games(year)
         players = load_ncaa_players(year)
         len_rows = games.shape[0]
         print("Iterating through %s games" % len_rows)
-        f = functools.partial(load_game, players, predict_score)
-        with multiprocessing.Pool(n_threads) as pool:
+        f = functools.partial(load_game, players)
+        with multiprocessing.Pool(64) as pool:
             res = pool.map(f, games.iterrows())
         features = [feature for feature, _ in res if feature is not None]
         labels = [label for _, label in res if label is not None]
@@ -105,14 +103,11 @@ def load_data(year, n_threads=16, predict_score=False):
         np.save(features_path, features)
         np.save(labels_path, labels)
     features, labels = np.load(features_path), np.load(labels_path)
-    # TODO: Remove this. It's here so we can load the old data cache
-    if labels.shape[-1] == 1:
-        labels = keras.utils.to_categorical(labels, num_classes=2)
     return features, labels
 
 
-def load_data_multiyear(years, n_threads):
-    data = [load_data(year, n_threads)
+def load_data_multiyear(years):
+    data = [load_data(year)
             for year in years]
     features = np.vstack([features for features, _ in data])
     labels = np.vstack([labels for _, labels in data])
