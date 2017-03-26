@@ -4,7 +4,8 @@ import sys
 
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Flatten
+from keras.layers import Dense, Flatten, Reshape
+from keras.layers.convolutional import Conv1D, Conv2D
 
 from ncaa_predict.data_loader import load_data_multiyear, \
     N_PLAYERS, PLAYER_FEATURE_COLUMNS
@@ -38,7 +39,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = Sequential([
-        Flatten(input_shape=(2, N_PLAYERS, len(PLAYER_FEATURE_COLUMNS))),
+        Conv2D(
+            10, (2, N_PLAYERS), strides=(1, N_PLAYERS),
+            input_shape=(2, N_PLAYERS, len(PLAYER_FEATURE_COLUMNS))),
+        Flatten(),
         Dense(128, activation="relu"),
         Dense(64, activation="relu"),
         Dense(16, activation="relu"),

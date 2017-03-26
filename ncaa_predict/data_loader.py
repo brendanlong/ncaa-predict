@@ -38,7 +38,7 @@ def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
-    players = players.fillna(0)
+    players = players.fillna(0) # N/A games presumably means 0
     players = players.sort_values("g", ascending=False).groupby("school_id")
     return players
 
