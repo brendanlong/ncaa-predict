@@ -2,6 +2,7 @@ import functools
 import multiprocessing
 import os
 
+import keras
 import numpy as np
 import pandas as pd
 
@@ -98,11 +99,16 @@ def load_data(year, n_threads=16, predict_score=False):
         labels = [label for _, label in res if label is not None]
         features = np.array(features, dtype=np.float32)
         labels = np.array(labels, dtype=np.int8)
+        labels = keras.utils.to_categorical(labels, num_classes=2)
         os.makedirs(os.path.dirname(features_path), exist_ok=True)
         os.makedirs(os.path.dirname(labels_path), exist_ok=True)
         np.save(features_path, features)
         np.save(labels_path, labels)
-    return np.load(features_path), np.load(labels_path)
+    features, labels = np.load(features_path), np.load(labels_path)
+    # TODO: Remove this. It's here so we can load the old data cache
+    if labels.shape[-1] == 1:
+        labels = keras.utils.to_categorical(labels, num_classes=2)
+    return features, labels
 
 
 def load_data_multiyear(years, n_threads):
