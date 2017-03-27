@@ -81,9 +81,9 @@ def load_game(players, p):
 
 def load_data(year):
     features_path = os.path.join(
-        THIS_DIR, "../data_cache/features_%s.npy" % year)
+        THIS_DIR, "../data_cache_%d/features_%s.npy" % (N_PLAYERS, year))
     labels_path = os.path.join(
-        THIS_DIR, "../data_cache/labels_%s.npy" % year)
+        THIS_DIR, "../data_cache_%d/labels_%s.npy" % (N_PLAYERS, year))
     if not os.path.exists(features_path) \
             or not os.path.exists(labels_path):
         games = load_ncaa_games(year)

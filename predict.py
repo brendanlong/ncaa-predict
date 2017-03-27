@@ -106,7 +106,6 @@ def predict(model, all_teams, all_players, bracket, wait=False):
     players_a = get_players_for_team(all_players, team_ids[0])
     players_b = get_players_for_team(all_players, team_ids[1])
     x = np.array([np.stack([players_a, players_b])])
-    # classifier tells us 1 if team_a wins, 2 if team_b wins
     a_wins, b_wins = model.predict(x=x)[0]
     if a_wins > b_wins:
         winner = team_a

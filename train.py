@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     model = Sequential([
         Conv2D(
-            10, (2, N_PLAYERS), strides=(1, N_PLAYERS),
+            10, (2, N_PLAYERS), strides=(1, N_PLAYERS), activation="relu",
             input_shape=(2, N_PLAYERS, len(PLAYER_FEATURE_COLUMNS))),
         Flatten(),
         Dense(128, activation="relu"),
