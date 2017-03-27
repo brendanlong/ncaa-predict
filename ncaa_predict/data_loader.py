@@ -75,7 +75,7 @@ def load_game(players, p):
     if this_team is None or other_team is None:
         return None, None
     teams = [this_team, other_team]
-    label = [game["score"] > game["opponent_score"]]
+    label = [0 if game["score"] > game["opponent_score"] else 1]
     return np.stack(teams), label
 
 
