@@ -24,9 +24,10 @@ if __name__ == "__main__":
         "may not converge. (default: %(default)s)")
     parser.add_argument(
         "--model-out", "-o", default=None,
-        help="Folder to save the model to. This folder must not exist, as "
-        "tensorflow won't let us save over an old model. (default: don't "
-        "save)")
+        help="File to save the model to. This will be an entire Keras model, "
+        "which can be loaded and used without needing to keep track of the "
+        "architecture. Warning: Keras will overwrite existing models. "
+        "(default: don't save)")
     parser.add_argument(
         "--steps", "-s", default=DEFAULT_STEPS, type=int,
         help="The maximum number of training steps. Note that you can stop "

@@ -45,7 +45,7 @@ See [the README in the `csv` folder](csv/README.md) for details.
 ## Training a model
 
 ```
-./train.py -y $TRAINING_YEARS -p $VALIDATION_YEAR -o $MODEL_OUT_DIR
+./train.py -y $TRAINING_YEARS -p $VALIDATION_YEAR -o $MODEL_OUT
 ```
 
 Example:
@@ -58,21 +58,14 @@ See other training options with `./train.py --help`. You may also want to
 change the hidden layers, but this currently isn't a command-line option and
 you will need to edit the code.
 
-This trains a
-[TensorFlow `DNNClassifier`](https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNClassifier)
+This trains a [Keras](https://keras.io/) classifier
 using player stats to predict which team will win in a matchup.
-
-For some weird reason, TensorFlow actually saves the model in a random numeric
-folder inside of the folder given, so if you do `./train.py -m my_model`, the
-actual model data will be in a folder like `my_model/00067002`.
-
-TensorFlow will not overwrite an old model, so if you give a `--model-out`
-which already exists, we will prompt you for a different one.
 
 ## Evaluating a model
 
 `./evaluate.py` can be used to evaluate a trained model against a given year's
-data.
+data. You should also see the training set accuracy during training at the end
+of each epoch.
 
 ## Predicting games
 
@@ -169,31 +162,3 @@ Historical prediction: Villanova 72.6 to Kansas 63.2 (total: 135.8)
 ```
 
 This algorithm could use work but it comes up with plausible numbers.
-
-### Neural Network
-
-I never got this working, but you can try to use a similar model to our game
-outcome predictor to predict the final (combined) score of a game.
-
-#### Training
-
-Same as the normal training, except add `--predict-score`. Note that score
-prediction and game outcome prediction models are not compatible!
-
-```
-./train.py --predict-score $OTHER_ARGS
-```
-
-#### Prediction
-
-Add `-m $MODEL` with the output directory of a model trained to predict scores:
-
-```
-./predict_score.py Villanova "North Carolina" -m $PREDICT_SCORE_MODEL
-```
-
-It should print something like this:
-
-```
-NN Prediction: Villanova vs. Kansas final score: -56.0292
-```
