@@ -1,8 +1,5 @@
-import functools
-import multiprocessing
 import os
 
-import keras
 import numpy as np
 import pandas as pd
 
@@ -16,6 +13,7 @@ PLAYER_FEATURE_COLUMNS = [
     "g", "height", "fg_percent", "3pt_percent", "freethrows_percent",
     "points_avg", "rebounds_avg", "assists_avg", "blocks_avg",
     "steals_avg"]
+N_FEATURES = len(PLAYER_FEATURE_COLUMNS)
 
 THIS_DIR = os.path.dirname(__file__)
 
@@ -31,14 +29,15 @@ def load_csv(path, columns, to_numeric=True):
 def load_ncaa_games(year):
     columns = ["year", "school_id", "opponent_id", "score", "opponent_score"]
     path = "csv/ncaa_games_%s.csv" % year
-    return load_csv(path, columns)
+    return load_csv(path, columns) \
+        .dropna()
 
 
 def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
-    players = players.fillna(0) # N/A games presumably means 0
+    players = players.fillna(0)  # N/A games presumably means 0
     players = players.sort_values("g", ascending=False).groupby("school_id")
     return players
 
@@ -48,12 +47,7 @@ def load_ncaa_schools():
     return load_csv(path, ["school_id", "school_name"], to_numeric=False)
 
 
-def get_players_for_team(players, school_id):
-    try:
-        team = players.get_group(school_id)
-    except KeyError:
-        return None
-
+def _setup_players(team):
     team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
     if len(team) > N_PLAYERS:
         team = team[:N_PLAYERS]
@@ -65,44 +59,36 @@ def get_players_for_team(players, school_id):
     return team
 
 
-def load_game(players, p):
-    i, game = p
-    this_team = get_players_for_team(players, game["school_id"])
-    other_team = get_players_for_team(players, game["opponent_id"])
-    if i % 1000 == 0:
-        print("Handled row %s" % i)
+def get_players_for_team(players, school_id):
+    try:
+        team = players.get_group(school_id)
+    except KeyError:
+        return None
 
-    if this_team is None or other_team is None:
-        return None, None
-    teams = [this_team, other_team]
-    label = [0 if game["score"] > game["opponent_score"] else 1]
-    return np.stack(teams), label
+    return _setup_players(team)
 
 
 def load_data(year):
-    features_path = os.path.join(
-        THIS_DIR, "../data_cache_%d/features_%s.npy" % (N_PLAYERS, year))
-    labels_path = os.path.join(
-        THIS_DIR, "../data_cache_%d/labels_%s.npy" % (N_PLAYERS, year))
-    if not os.path.exists(features_path) \
-            or not os.path.exists(labels_path):
-        games = load_ncaa_games(year)
-        players = load_ncaa_players(year)
-        len_rows = games.shape[0]
-        print("Iterating through %s games" % len_rows)
-        f = functools.partial(load_game, players)
-        with multiprocessing.Pool(64) as pool:
-            res = pool.map(f, games.iterrows())
-        features = [feature for feature, _ in res if feature is not None]
-        labels = [label for _, label in res if label is not None]
-        features = np.array(features, dtype=np.float32)
-        labels = np.array(labels, dtype=np.int8)
-        labels = keras.utils.to_categorical(labels, num_classes=2)
-        os.makedirs(os.path.dirname(features_path), exist_ok=True)
-        os.makedirs(os.path.dirname(labels_path), exist_ok=True)
-        np.save(features_path, features)
-        np.save(labels_path, labels)
-    features, labels = np.load(features_path), np.load(labels_path)
+    print("Loading data for %s" % year)
+    games = load_ncaa_games(year)
+    players = load_ncaa_players(year)
+    print("Setting up teams")
+    teams = {school_id: _setup_players(team) for school_id, team in players}
+    num_games = games.shape[0]
+    print("Getting valid games from %s games" % num_games)
+    games = [game for game in games.itertuples()
+             if game.school_id in teams and game.opponent_id in teams]
+    num_games = len(games)
+    print("Setting up %s games" % num_games)
+    features = np.empty(shape=[num_games, 2, N_PLAYERS, N_FEATURES],
+                        dtype=np.float32)
+    labels = np.empty(shape=[num_games, 2], dtype=np.int8)
+    for i, game in enumerate(games):
+        this_team = teams[game.school_id]
+        other_team = teams[game.opponent_id]
+        features[i] = [this_team, other_team]
+        labels[i] = [1, 0] if game.score > game.opponent_score else [0, 1]
+    assert i == num_games - 1
     return features, labels
 
 
