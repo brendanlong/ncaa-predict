@@ -11,9 +11,12 @@ N_PLAYERS = 10
 
 PLAYER_FEATURE_COLUMNS = [
     # g = games
-    "g", "height", "fg_percent", "3pt_percent", "freethrows_percent",
-    "points_avg", "rebounds_avg", "assists_avg", "blocks_avg",
-    "steals_avg"]
+    "g", "height", "fg_made", "fg_attempts", "fg_percent", "3pt_made",
+    "3pt_attempts", "3pt_percent", "freethrows_made",
+    "freethrows_attempts", "freethrows_percent", "rebounds_num",
+    "rebounds_avg", "assists_num", "assists_avg", "blocks_num",
+    "blocks_avg", "steals_num", "steals_avg", "points_num",
+    "points_avg", "turnovers", "dd", "td"]
 N_FEATURES = len(PLAYER_FEATURE_COLUMNS)
 
 THIS_DIR = os.path.dirname(__file__)
