@@ -1,6 +1,8 @@
+from enum import Enum, unique
 import multiprocessing
 import os
 
+import keras
 import numpy as np
 import pandas as pd
 
@@ -9,7 +11,28 @@ import pandas as pd
 # or reduce to this size
 N_PLAYERS = 10
 
-PLAYER_FEATURE_COLUMNS = [
+@unique
+class Position(Enum):
+    NONE = (1, 0, 0, 0)
+    GUARD = (0, 1, 0, 0)
+    FORWARD = (0, 0, 1, 0)
+    CENTER = (0, 0, 0, 1)
+
+    @staticmethod
+    def from_col(col):
+        if col in ("G", "Guard"):
+            return Position.GUARD
+        elif col in ("F", "Forward"):
+            return Position.FORWARD
+        elif col == "C":
+            return Position.CENTER
+        elif col is np.nan:
+            return Position.NONE
+        else:
+            raise NotImplementedError("%s is not a known Position" % col)
+
+
+PLAYER_FLOAT_COLUMNS = [
     # g = games
     "g", "height", "fg_made", "fg_attempts", "fg_percent", "3pt_made",
     "3pt_attempts", "3pt_percent", "freethrows_made",
@@ -17,16 +40,18 @@ PLAYER_FEATURE_COLUMNS = [
     "rebounds_avg", "assists_num", "assists_avg", "blocks_num",
     "blocks_avg", "steals_num", "steals_avg", "points_num",
     "points_avg", "turnovers", "dd", "td"]
-N_FEATURES = len(PLAYER_FEATURE_COLUMNS)
+PLAYER_CATEGORICAL_COLUMNS = ["position"]
+PLAYER_FEATURE_COLUMNS = PLAYER_FLOAT_COLUMNS + PLAYER_CATEGORICAL_COLUMNS
+N_FEATURES = len(PLAYER_FLOAT_COLUMNS) + len(Position)
+
 
 THIS_DIR = os.path.dirname(__file__)
 
 
-def load_csv(path, columns, to_numeric=True):
+def load_csv(path, columns):
     path = os.path.join(THIS_DIR, "..", path)
     df = pd.read_csv(path, usecols=list(columns))
-    if to_numeric:
-        df = df.apply(pd.to_numeric)
+    df = df.apply(pd.to_numeric, errors="ignore")
     return df
 
 
@@ -41,6 +66,7 @@ def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
+    players["position"] = players["position"].apply(Position.from_col)
     players = players.fillna(0)  # N/A games presumably means 0
     players = players.sort_values("g", ascending=False).groupby("school_id")
     return players
@@ -48,11 +74,14 @@ def load_ncaa_players(year):
 
 def load_ncaa_schools():
     path = "csv/ncaa_schools.csv"
-    return load_csv(path, ["school_id", "school_name"], to_numeric=False)
+    return load_csv(path, ["school_id", "school_name"])
 
 
 def _setup_players(team):
-    team = team.as_matrix(columns=PLAYER_FEATURE_COLUMNS)
+    team = np.hstack([
+        team[PLAYER_FLOAT_COLUMNS].as_matrix(),
+        [p.value for p in team["position"].values]
+    ])
     if len(team) > N_PLAYERS:
         team = team[:N_PLAYERS]
 
