@@ -12,6 +12,30 @@ import pandas as pd
 N_PLAYERS = 10
 
 @unique
+class Class(Enum):
+    FRESHMAN = (1, 0, 0, 0, 0)
+    JUNIOR = (0, 1, 0, 0, 0)
+    SOPHOMORE = (0, 0, 1, 0, 0)
+    SENIOR = (0, 0, 0, 1, 0)
+    UNKNOWN = (0, 0, 0, 0, 1)
+
+    @staticmethod
+    def from_col(col):
+        if col == "Fr.":
+            return Class.FRESHMAN
+        elif col == "Jr.":
+            return Class.JUNIOR
+        elif col == "So.":
+            return Class.SOPHOMORE
+        elif col == "Sr.":
+            return Class.SENIOR
+        elif col == "---":
+            return Class.UNKNOWN
+        else:
+            raise NotImplementedError("%s is not a known Class" % col)
+
+
+@unique
 class Position(Enum):
     NONE = (1, 0, 0, 0)
     GUARD = (0, 1, 0, 0)
@@ -40,9 +64,9 @@ PLAYER_FLOAT_COLUMNS = [
     "rebounds_avg", "assists_num", "assists_avg", "blocks_num",
     "blocks_avg", "steals_num", "steals_avg", "points_num",
     "points_avg", "turnovers", "dd", "td"]
-PLAYER_CATEGORICAL_COLUMNS = ["position"]
+PLAYER_CATEGORICAL_COLUMNS = ["position", "class"]
 PLAYER_FEATURE_COLUMNS = PLAYER_FLOAT_COLUMNS + PLAYER_CATEGORICAL_COLUMNS
-N_FEATURES = len(PLAYER_FLOAT_COLUMNS) + len(Position)
+N_FEATURES = len(PLAYER_FLOAT_COLUMNS) + len(Position) + len(Class)
 
 
 THIS_DIR = os.path.dirname(__file__)
@@ -67,6 +91,7 @@ def load_ncaa_players(year):
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
     players["position"] = players["position"].apply(Position.from_col)
+    players["class"] = players["class"].apply(Class.from_col)
     players = players.fillna(0)  # N/A games presumably means 0
     players = players.sort_values("g", ascending=False).groupby("school_id")
     return players
@@ -80,7 +105,8 @@ def load_ncaa_schools():
 def _setup_players(team):
     team = np.hstack([
         team[PLAYER_FLOAT_COLUMNS].as_matrix(),
-        [p.value for p in team["position"].values]
+        [p.value for p in team["position"].values],
+        [c.value for c in team["class"].values]
     ])
     if len(team) > N_PLAYERS:
         team = team[:N_PLAYERS]
