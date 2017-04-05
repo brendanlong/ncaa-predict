@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 
 import numpy as np
@@ -72,14 +73,12 @@ def load_data(year):
     print("Loading data for %s" % year)
     games = load_ncaa_games(year)
     players = load_ncaa_players(year)
-    print("Setting up teams")
     teams = {school_id: _setup_players(team) for school_id, team in players}
-    num_games = games.shape[0]
-    print("Getting valid games from %s games" % num_games)
+    print("Loaded %s teams" % len(teams))
+
     games = [game for game in games.itertuples()
              if game.school_id in teams and game.opponent_id in teams]
     num_games = len(games)
-    print("Setting up %s games" % num_games)
     features = np.empty(shape=[num_games, 2, N_PLAYERS, N_FEATURES],
                         dtype=np.float32)
     labels = np.empty(shape=[num_games, 2], dtype=np.int8)
@@ -88,13 +87,14 @@ def load_data(year):
         other_team = teams[game.opponent_id]
         features[i] = [this_team, other_team]
         labels[i] = [1, 0] if game.score > game.opponent_score else [0, 1]
+    print("Loaded %s games" % num_games)
     assert i == num_games - 1
     return features, labels
 
 
 def load_data_multiyear(years):
-    data = [load_data(year)
-            for year in years]
+    with multiprocessing.Pool() as p:
+        data = p.map(load_data, years)
     features = np.vstack([features for features, _ in data])
     labels = np.vstack([labels for _, labels in data])
     assert len(features) == len(labels)
