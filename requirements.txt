@@ -1,5 +1,4 @@
 h5py
-keras
 lxml
 numpy
 pandas
