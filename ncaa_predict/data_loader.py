@@ -104,7 +104,7 @@ def load_ncaa_schools():
 
 def _setup_players(team):
     team = np.hstack([
-        team[PLAYER_FLOAT_COLUMNS].as_matrix(),
+        team[PLAYER_FLOAT_COLUMNS].values,
         [p.value for p in team["position"].values],
         [c.value for c in team["class"].values]
     ])

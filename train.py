@@ -4,8 +4,7 @@ import sys
 
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Reshape
-from keras.layers.convolutional import Conv1D, Conv2D
+from keras.layers import Conv2D, Dense, Flatten
 
 from ncaa_predict.data_loader import load_data_multiyear, \
     N_PLAYERS, N_FEATURES
