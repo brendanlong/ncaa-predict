@@ -4,7 +4,7 @@ import sys
 
 import keras
 from keras.models import Sequential
-from keras.layers import Conv2D, Dense, Flatten
+from keras.layers import Conv1D, Conv2D, Dense, Flatten
 
 from ncaa_predict.data_loader import load_data_multiyear, \
     N_PLAYERS, N_FEATURES
@@ -39,18 +39,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = Sequential([
-        Conv2D(
-            10, (2, N_PLAYERS), strides=(1, N_PLAYERS), activation="relu",
-            input_shape=(2, N_PLAYERS, N_FEATURES)),
-        Flatten(),
+        Dense(512, activation="relu"),
+        Dense(256, activation="relu"),
         Dense(128, activation="relu"),
-        Dense(64, activation="relu"),
-        Dense(16, activation="relu"),
+        Flatten(),
         Dense(2, activation="softmax"),
     ])
     model.compile(
-        loss="categorical_crossentropy", optimizer="adagrad",
-        metrics=["accuracy"])
+        loss="categorical_crossentropy", optimizer="rmsprop",
+        metrics=["accuracy", "AUC", "Precision", "Recall"])
 
     features, labels = load_data_multiyear(args.train_years)
     try:

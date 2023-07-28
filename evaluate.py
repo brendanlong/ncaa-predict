@@ -9,8 +9,7 @@ from ncaa_predict.data_loader import load_data
 def evaluate(model, year):
     features, labels = load_data(year)
     print("\nEvaluating accuracy")
-    loss, accuracy = model.evaluate(x=features, y=labels, verbose=1)
-    print("\nLoss: %s, Accuracy: %s" % (loss, accuracy))
+    model.evaluate(x=features, y=labels, verbose=1)
 
 
 if __name__ == "__main__":
