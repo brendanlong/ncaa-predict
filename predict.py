@@ -4,8 +4,11 @@ import argparse
 import keras
 import numpy as np
 
-from ncaa_predict.data_loader import load_ncaa_players, load_ncaa_schools, \
-    get_players_for_team
+from ncaa_predict.data_loader import (
+    load_ncaa_players,
+    load_ncaa_schools,
+    get_players_for_team,
+)
 from ncaa_predict.util import list_arg, team_name_to_id
 
 
@@ -17,34 +20,41 @@ BRACKET = (
                 (
                     ("Villanova", "Mt. St. Mary's"),
                     ("Wisconsin", "Virginia Tech"),
-                ), (
+                ),
+                (
                     ("Virginia", "UNCW"),
                     ("Florida", "ETSU"),
                 ),
-            ), (
+            ),
+            (
                 (
                     ("SMU", "Southern California"),
                     ("Baylor", "New Mexico St."),
-                ), (
+                ),
+                (
                     ("South Carolina", "Marquette"),
                     ("Duke", "Troy"),
                 ),
             ),
-        ), (
+        ),
+        (
             # West
             (
                 (
                     ("Gonzaga", "South Dakota St."),
                     ("Northwestern", "Vanderbilt"),
-                ), (
+                ),
+                (
                     ("Notre Dame", "Princeton"),
                     ("West Virginia", "Bucknell"),
                 ),
-            ), (
+            ),
+            (
                 (
                     ("Maryland", "Xavier"),
                     ("Florida St.", "FGCU"),
-                ), (
+                ),
+                (
                     ("Saint Mary's (CA)", "VCU"),
                     ("Arizona", "North Dakota"),
                 ),
@@ -58,34 +68,41 @@ BRACKET = (
                 (
                     ("Kansas", "UC Davis"),
                     ("Miami (FL)", "Michigan St."),
-                ), (
+                ),
+                (
                     ("Iowa St.", "Nevada"),
                     ("Purdue", "Vermont"),
                 ),
-            ), (
+            ),
+            (
                 (
                     ("Creighton", "Rhode Island"),
                     ("Oregon", "Iona"),
-                ), (
+                ),
+                (
                     ("Michigan", "Oklahoma St."),
                     ("Louisville", "Jacksonville St."),
                 ),
             ),
-        ), (
+        ),
+        (
             # South
             (
                 (
                     ("North Carolina", "Texas Southern"),
                     ("Arkansas", "Seton Hall"),
-                ), (
+                ),
+                (
                     ("Minnesota", "Middle Tenn."),
                     ("Butler", "Winthrop"),
                 ),
-            ), (
+            ),
+            (
                 (
                     ("Cincinnati", "Kansas St."),
                     ("UCLA", "Kent St."),
-                ), (
+                ),
+                (
                     ("Dayton", "Wichita St."),
                     ("Kentucky", "Northern Ky."),
                 ),
@@ -121,8 +138,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-in", "-m", required=True)
     parser.add_argument("--year", "-y", default=2017, type=int)
-    parser.add_argument(
-        "--wait", "-w", default=False, action="store_const", const=True)
+    parser.add_argument("--wait", "-w", default=False, action="store_const", const=True)
     args = parser.parse_args()
 
     players = load_ncaa_players(args.year)
@@ -134,4 +150,5 @@ if __name__ == "__main__":
     # Workaround for TensorFlow bug:
     # https://github.com/tensorflow/tensorflow/issues/3388
     import gc
+
     gc.collect()

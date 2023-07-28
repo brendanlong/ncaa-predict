@@ -11,6 +11,7 @@ import pandas as pd
 # or reduce to this size
 N_PLAYERS = 10
 
+
 @unique
 class Class(Enum):
     FRESHMAN = (1, 0, 0, 0, 0)
@@ -58,12 +59,31 @@ class Position(Enum):
 
 PLAYER_FLOAT_COLUMNS = [
     # g = games
-    "g", "height", "fg_made", "fg_attempts", "fg_percent", "3pt_made",
-    "3pt_attempts", "3pt_percent", "freethrows_made",
-    "freethrows_attempts", "freethrows_percent", "rebounds_num",
-    "rebounds_avg", "assists_num", "assists_avg", "blocks_num",
-    "blocks_avg", "steals_num", "steals_avg", "points_num",
-    "points_avg", "turnovers", "dd", "td"]
+    "g",
+    "height",
+    "fg_made",
+    "fg_attempts",
+    "fg_percent",
+    "3pt_made",
+    "3pt_attempts",
+    "3pt_percent",
+    "freethrows_made",
+    "freethrows_attempts",
+    "freethrows_percent",
+    "rebounds_num",
+    "rebounds_avg",
+    "assists_num",
+    "assists_avg",
+    "blocks_num",
+    "blocks_avg",
+    "steals_num",
+    "steals_avg",
+    "points_num",
+    "points_avg",
+    "turnovers",
+    "dd",
+    "td",
+]
 PLAYER_CATEGORICAL_COLUMNS = ["position", "class"]
 PLAYER_FEATURE_COLUMNS = PLAYER_FLOAT_COLUMNS + PLAYER_CATEGORICAL_COLUMNS
 N_FEATURES = len(PLAYER_FLOAT_COLUMNS) + len(Position) + len(Class)
@@ -82,8 +102,7 @@ def load_csv(path, columns):
 def load_ncaa_games(year):
     columns = ["year", "school_id", "opponent_id", "score", "opponent_score"]
     path = "csv/ncaa_games_%s.csv" % year
-    return load_csv(path, columns) \
-        .dropna()
+    return load_csv(path, columns).dropna()
 
 
 def load_ncaa_players(year):
@@ -103,11 +122,13 @@ def load_ncaa_schools():
 
 
 def _setup_players(team):
-    team = np.hstack([
-        team[PLAYER_FLOAT_COLUMNS].values,
-        [p.value for p in team["position"].values],
-        [c.value for c in team["class"].values]
-    ])
+    team = np.hstack(
+        [
+            team[PLAYER_FLOAT_COLUMNS].values,
+            [p.value for p in team["position"].values],
+            [c.value for c in team["class"].values],
+        ]
+    )
     if len(team) > N_PLAYERS:
         team = team[:N_PLAYERS]
 
@@ -134,11 +155,13 @@ def load_data(year):
     teams = {school_id: _setup_players(team) for school_id, team in players}
     print("Loaded %s teams" % len(teams))
 
-    games = [game for game in games.itertuples()
-             if game.school_id in teams and game.opponent_id in teams]
+    games = [
+        game
+        for game in games.itertuples()
+        if game.school_id in teams and game.opponent_id in teams
+    ]
     num_games = len(games)
-    features = np.empty(shape=[num_games, 2, N_PLAYERS, N_FEATURES],
-                        dtype=np.float32)
+    features = np.empty(shape=[num_games, 2, N_PLAYERS, N_FEATURES], dtype=np.float32)
     labels = np.empty(shape=[num_games, 2], dtype=np.int8)
     for i, game in enumerate(games):
         this_team = teams[game.school_id]

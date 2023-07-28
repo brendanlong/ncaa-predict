@@ -15,35 +15,64 @@ TEAM_URL = "http://web1.ncaa.org/stats/StatsSrv/careerteam"
 SCHOOL_CSV = "csv/ncaa_schools.csv"
 
 SCRAPE_GAME_COLS = [
-    "opponent_name", "game_date", "score", "opponent_score",
-    "location", "neutral_site_location", "game_length",
+    "opponent_name",
+    "game_date",
+    "score",
+    "opponent_score",
+    "location",
+    "neutral_site_location",
+    "game_length",
     "attendence",
 ]
 
 GAME_COLS = SCRAPE_GAME_COLS + [
-    "opponent_id", "year", "school_id",
+    "opponent_id",
+    "year",
+    "school_id",
 ]
 
 SCRAPE_PLAYER_COLS = [
-    "player_name", "class", "season", "position", "height", "g",
-    "fg_made", "fg_attempts", "fg_percent", "3pt_made",
-    "3pt_attempts", "3pt_percent", "freethrows_made",
-    "freethrows_attempts", "freethrows_percent", "rebounds_num",
-    "rebounds_avg", "assists_num", "assists_avg", "blocks_num",
-    "blocks_avg", "steals_num", "steals_avg", "points_num",
-    "points_avg", "turnovers", "dd", "td",
+    "player_name",
+    "class",
+    "season",
+    "position",
+    "height",
+    "g",
+    "fg_made",
+    "fg_attempts",
+    "fg_percent",
+    "3pt_made",
+    "3pt_attempts",
+    "3pt_percent",
+    "freethrows_made",
+    "freethrows_attempts",
+    "freethrows_percent",
+    "rebounds_num",
+    "rebounds_avg",
+    "assists_num",
+    "assists_avg",
+    "blocks_num",
+    "blocks_avg",
+    "steals_num",
+    "steals_avg",
+    "points_num",
+    "points_avg",
+    "turnovers",
+    "dd",
+    "td",
 ]
 
 PLAYER_COLS = SCRAPE_PLAYER_COLS + [
-    "player_id", "year", "school_id",
+    "player_id",
+    "year",
+    "school_id",
 ]
 
 
 def post_form(url, post_data=None):
     headers = {
-        "user-agent":
-            "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, "
-            "like Gecko) Chrome/41.0.2228.0 Safari/537.36",
+        "user-agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, "
+        "like Gecko) Chrome/41.0.2228.0 Safari/537.36",
         "referrer": url,
     }
     if post_data is not None:
@@ -80,22 +109,27 @@ def get_school_games(year, school):
     path = "csv/games/ncaa_games_%s_%s.csv" % (year, school["school_id"])
     if not os.path.exists(path):
         int_cols = [
-            "opponent_id", "score", "opponent_score", "attendence",
+            "opponent_id",
+            "score",
+            "opponent_score",
+            "attendence",
             "school_id",
         ]
         try:
-            page = post_form(RECORDS_URL, {
-                "academicYear": str(year),
-                "orgId": school["school_id"],
-                "sportCode": "MBB"
-            })
+            page = post_form(
+                RECORDS_URL,
+                {
+                    "academicYear": str(year),
+                    "orgId": school["school_id"],
+                    "sportCode": "MBB",
+                },
+            )
         except requests.exceptions.HTTPError:
             # We can try again later
             print("Failed to load %s/%s" % (year, school["school_name"]))
             return []
 
-        rows = page.xpath(
-            "//form[@name='orgRecords']/table[2]/tr[position()>1]")
+        rows = page.xpath("//form[@name='orgRecords']/table[2]/tr[position()>1]")
         games = []
         for row in rows:
             game = {
@@ -143,36 +177,35 @@ def get_school_players(year, school):
     print("%s/%s" % (year, school["school_name"]))
     path = "csv/players/ncaa_players_%s_%s.csv" % (year, school["school_id"])
     if not os.path.exists(path):
-        int_cols = [
-            "player_id", "height", "g"
-        ]
+        int_cols = ["player_id", "height", "g"]
         try:
-            page = post_form(TEAM_URL, {
-                "academicYear": str(year),
-                "orgId": school["school_id"],
-                "sportCode": "MBB",
-                "sortOn": "0",
-                "doWhat": "display",
-                "playerId": "-100",
-                "coachId": "-100",
-                "division": "1",
-                "idx": ""
-            })
+            page = post_form(
+                TEAM_URL,
+                {
+                    "academicYear": str(year),
+                    "orgId": school["school_id"],
+                    "sportCode": "MBB",
+                    "sortOn": "0",
+                    "doWhat": "display",
+                    "playerId": "-100",
+                    "coachId": "-100",
+                    "division": "1",
+                    "idx": "",
+                },
+            )
         except requests.exceptions.HTTPError:
             # We can try again later
             print("Failed to load %s/%s" % (year, school["school_name"]))
             return []
 
-        rows = page.xpath(
-            "//table[@class='statstable'][2]//tr[position()>3]")
+        rows = page.xpath("//table[@class='statstable'][2]//tr[position()>3]")
         players = []
         for row in rows:
             player = {
                 "school_id": school["school_id"],
                 "year": year,
             }
-            for colname, cell in \
-                    zip(SCRAPE_PLAYER_COLS, row.iterchildren()):
+            for colname, cell in zip(SCRAPE_PLAYER_COLS, row.iterchildren()):
                 content = cell.text_content().strip()
                 if colname == "player_name":
                     content = content.replace("%", "").strip()
@@ -219,7 +252,8 @@ def get_schools():
     options = page.xpath("//select[@name='searchOrg']/option[position()>1]")
     schools = [
         {"school_id": option.get("value"), "school_name": option.text}
-        for option in options]
+        for option in options
+    ]
     write_csv(SCHOOL_CSV, schools, colnames=list(schools[0]))
 
 
@@ -237,9 +271,12 @@ if __name__ == "__main__":
         subparser.set_defaults(func=func)
         if func != get_schools:
             subparser.add_argument(
-                "--years", "-y", type=lambda v: map(int, v.split(",")),
+                "--years",
+                "-y",
+                type=lambda v: map(int, v.split(",")),
                 default=list(range(2002, 2018)),
-                help="The years to scrape data for. (default: %(default)s")
+                help="The years to scrape data for. (default: %(default)s",
+            )
     args = parser.parse_args()
     if args.func == get_schools:
         args.func()

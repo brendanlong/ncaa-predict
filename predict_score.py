@@ -3,8 +3,12 @@ import argparse
 
 import numpy as np
 
-from ncaa_predict.data_loader import load_ncaa_players, load_ncaa_schools, \
-    load_ncaa_games, get_players_for_team
+from ncaa_predict.data_loader import (
+    load_ncaa_players,
+    load_ncaa_schools,
+    load_ncaa_games,
+    get_players_for_team,
+)
 from ncaa_predict.estimator import *
 from ncaa_predict.util import list_arg, team_name_to_id
 
@@ -31,17 +35,28 @@ if __name__ == "__main__":
     parser.add_argument("team_a")
     parser.add_argument("team_b")
     parser.add_argument(
-        "--hidden-units", "-u", default=DEFAULT_HIDDEN_UNITS,
+        "--hidden-units",
+        "-u",
+        default=DEFAULT_HIDDEN_UNITS,
         type=list_arg(type=int),
-        help="A comma seperated list of hidden units in each DNN layer.")
+        help="A comma seperated list of hidden units in each DNN layer.",
+    )
     parser.add_argument("--model-in", "-m")
     parser.add_argument(
-        "--model-type", "-t", default=ModelType.dnn_classifier,
-        type=ModelType, choices=list(ModelType))
+        "--model-type",
+        "-t",
+        default=ModelType.dnn_classifier,
+        type=ModelType,
+        choices=list(ModelType),
+    )
     parser.add_argument(
-        "--n-threads", "-j", default=DEFAULT_N_THREADS, type=int,
+        "--n-threads",
+        "-j",
+        default=DEFAULT_N_THREADS,
+        type=int,
         help="Number of threads to use for some Pandas data-loading "
-        "processes. (default: %(default)s)")
+        "processes. (default: %(default)s)",
+    )
     parser.add_argument("--year", "-y", default=2017, type=int)
     args = parser.parse_args()
 
@@ -58,14 +73,18 @@ if __name__ == "__main__":
         features = np.array([np.stack([players_a, players_b])])
 
         estimator = Estimator(
-            args.model_type, hidden_units=args.hidden_units,
-            model_in=args.model_in, n_threads=args.n_threads,
-            feature_year=args.year)
+            args.model_type,
+            hidden_units=args.hidden_units,
+            model_in=args.model_in,
+            n_threads=args.n_threads,
+            feature_year=args.year,
+        )
 
         score = next(estimator.predict(x=features))
         print(
             "NN Prediction: %s vs. %s final score: %s"
-            % (args.team_a, args.team_b, score))
+            % (args.team_a, args.team_b, score)
+        )
 
     else:
         # Use each team's games against other teams to figure out how much
@@ -78,5 +97,11 @@ if __name__ == "__main__":
         b_score, b_diff = get_historical_score(team_b_id, games)
         print(
             "Historical prediction: %s %.1f to %s %.1f (total: %.1f)"
-            % (args.team_a, a_score - b_diff, args.team_b, b_score - a_diff,
-               a_score + b_score - a_diff - b_diff))
+            % (
+                args.team_a,
+                a_score - b_diff,
+                args.team_b,
+                b_score - a_diff,
+                a_score + b_score - a_diff - b_diff,
+            )
+        )
