@@ -2,15 +2,14 @@
 import argparse
 import sys
 
-import keras
 from keras.models import Sequential
-from keras.layers import Conv1D, Conv2D, Dense, Flatten
+from keras.layers import Dense, Flatten
 
 from ncaa_predict.data_loader import load_data_multiyear, N_PLAYERS, N_FEATURES
 from ncaa_predict.util import list_arg
 
 
-DEFAULT_BATCH_SIZE = 1000
+DEFAULT_BATCH_SIZE = 10000
 DEFAULT_STEPS = sys.maxsize
 
 
@@ -53,10 +52,8 @@ if __name__ == "__main__":
 
     model = Sequential(
         [
-            Dense(512, activation="relu"),
-            Dense(256, activation="relu"),
-            Dense(128, activation="relu"),
             Flatten(),
+            Dense(16, activation="relu", kernel_regularizer="L1L2"),
             Dense(2, activation="softmax"),
         ]
     )

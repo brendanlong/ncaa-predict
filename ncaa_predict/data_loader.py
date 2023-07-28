@@ -63,26 +63,15 @@ PLAYER_FLOAT_COLUMNS = [
     "height",
     "fg_made",
     "fg_attempts",
-    "fg_percent",
     "3pt_made",
     "3pt_attempts",
-    "3pt_percent",
     "freethrows_made",
     "freethrows_attempts",
-    "freethrows_percent",
     "rebounds_num",
-    "rebounds_avg",
     "assists_num",
-    "assists_avg",
     "blocks_num",
-    "blocks_avg",
     "steals_num",
-    "steals_avg",
     "points_num",
-    "points_avg",
-    "turnovers",
-    "dd",
-    "td",
 ]
 PLAYER_CATEGORICAL_COLUMNS = ["position", "class"]
 PLAYER_FEATURE_COLUMNS = PLAYER_FLOAT_COLUMNS + PLAYER_CATEGORICAL_COLUMNS
@@ -109,6 +98,9 @@ def load_ncaa_players(year):
     columns = PLAYER_FEATURE_COLUMNS + ["school_id"]
     path = "csv/ncaa_players_%s.csv" % year
     players = load_csv(path, columns)
+    # drop players with height < 4 ft since the data set has some weirdness like 0 height and 6 in tall players
+    players.dropna(subset="height")
+    players = players[players["height"] >= 48]
     players["position"] = players["position"].apply(Position.from_col)
     players["class"] = players["class"].apply(Class.from_col)
     players = players.fillna(0)  # N/A games presumably means 0
