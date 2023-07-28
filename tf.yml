@@ -1,0 +1,9 @@
+name: tf
+channels:
+  - defaults
+dependencies:
+  - tensorflow-gpu
+  - keras
+  - numpy=1.21
+  - pandas
+prefix: /home/blong/.conda/envs/tf
